@@ -3,10 +3,13 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"],
       "~/config/*": ["./config/*"],
       "~/components/*": ["./components/*"],
-      "~/lib/*": ["./lib/*"]
+      "~/lib/*": ["./lib/*"],
+      "@kit/generative-designer/*": ["./../../packages/features/generative-designer/src/*"],
+      "~/*": ["./app/*"],
+      "~/utils": ["./../../packages/ui/src/lib/utils"]
+
     },
     "plugins": [
       {

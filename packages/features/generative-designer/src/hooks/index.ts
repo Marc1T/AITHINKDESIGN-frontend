@@ -61,9 +61,7 @@ export {
 
 // TRIZ hooks (Phase 4)
 export {
-  useAnalyzeTRIZ,
-  useTRIZResults,
-  trizKeys,
+  useTRIZ,
 } from './use-triz';
 
 // Selection hooks (Phase 5)

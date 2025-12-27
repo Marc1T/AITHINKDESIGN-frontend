@@ -12,7 +12,7 @@ import { Badge } from '@kit/ui/badge';
 import { Card } from '@kit/ui/card';
 import { Loader2, Send, Bot, User, Lightbulb, ArrowLeft } from 'lucide-react';
 import { useTRIZ } from '../../hooks/use-triz';
-import { cn } from '@kit/ui/utils';
+import { cn } from '../../lib/utils';
 
 interface TRIZChatProps {
   ideationId: string;

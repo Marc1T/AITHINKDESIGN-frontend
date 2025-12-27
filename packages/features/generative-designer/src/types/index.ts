@@ -7,6 +7,67 @@
  * Matches backend models from Python API
  */
 
+// Re-export types from lib/types.ts for v1.0 compatibility
+export type {
+  Material,
+  Process,
+  Objective,
+  IdeationStatus,
+  GenerationStatus,
+  IdeationParameters,
+  IdeationResponse,
+  GenerationResponse,
+  GenerationStatusResponse,
+  ChatMessage,
+  ConversationState,
+  ChatResponse,
+  DesignerMode,
+  DesignerState,
+} from '../lib/types';
+
+// =============================================================================
+// TRIZ Types (for chat)
+// =============================================================================
+
+export interface TRIZMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface TRIZConversationState {
+  stage: 'initial' | 'analyzing' | 'principles' | 'enrichment' | 'complete';
+  contradictions: TRIZContradiction[];
+  selected_principles: number[];
+  enriched_brief?: string;
+}
+
+export interface TRIZContradiction {
+  improving_parameter: string;
+  worsening_parameter: string;
+  description: string;
+}
+
+export interface TRIZAnalysis {
+  contradictions: TRIZContradiction[];
+  suggested_principles: TRIZPrinciple[];
+  enriched_brief: string;
+}
+
+export interface TRIZPrinciple {
+  number: number;
+  name: string;
+  description: string;
+  application?: string;
+}
+
+export interface TRIZChatResponse {
+  bot_message: string;
+  conversation_state: TRIZConversationState;
+  suggested_actions: string[];
+  triz_analysis?: TRIZAnalysis;
+  is_complete: boolean;
+}
+
 // =============================================================================
 // Enums
 // =============================================================================

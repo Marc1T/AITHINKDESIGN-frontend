@@ -33,9 +33,10 @@ export default async function RootLayout({
 }
 
 function getClassName(theme?: string) {
-  const dark = theme === 'dark';
-  const light = !dark;
-
+  // Do not render theme-specific classes on the server. Let the client
+  // `ThemeProvider` (next-themes) manage the `dark` class to avoid
+  // hydration mismatches when the user's system preference differs from
+  // server-side cookie inference.
   const font = [sans.variable, heading.variable].reduce<string[]>(
     (acc, curr) => {
       if (acc.includes(curr)) return acc;
@@ -45,10 +46,7 @@ function getClassName(theme?: string) {
     [],
   );
 
-  return cn('bg-background min-h-screen antialiased', ...font, {
-    dark,
-    light,
-  });
+  return cn('bg-background min-h-screen antialiased', ...font);
 }
 
 async function getTheme() {

@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_GENERATIVE_DESIGNER_API_URL || 'http://localhost:8000';
+// Use server-side env variable (not exposed to client)
+const BACKEND_URL = process.env.GENERATIVE_DESIGNER_BACKEND_URL || 'http://localhost:8000';
 
 // IMPORTANT: Next.js 15 requires awaiting params
 export async function GET(
@@ -39,18 +40,21 @@ async function proxyRequest(
   method: string
 ) {
   try {
-    // Get JWT token from Supabase session
+    // Get JWT token from Supabase session (preferred)
     const supabase = getSupabaseServerClient();
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
+    // Fallback: accept incoming Authorization header (useful for dev/testing)
+    const incomingAuth = request.headers.get('authorization') || request.headers.get('Authorization');
+
+    const jwtToken = session?.access_token || (incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, '') : undefined);
+
+    if (!jwtToken) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
       );
     }
-
-    const jwtToken = session.access_token;
 
     // Build backend URL
     const path = pathSegments.join('/');
@@ -91,6 +95,35 @@ async function proxyRequest(
     const backendResponse = await fetch(backendUrl, options);
 
     console.log(`✅ Backend responded with status: ${backendResponse.status}`);
+
+    // Fallback: if backend returned 404 and the incoming path included
+    // the `/api/generative-designer` prefix, retry the request without it.
+    if (backendResponse.status === 404) {
+      if (pathSegments.length >= 2 && pathSegments[0] === 'api' && pathSegments[1] === 'generative-designer') {
+        const strippedPath = pathSegments.slice(2).join('/');
+        const retryUrl = `${BACKEND_URL}/${strippedPath}`;
+        console.warn(`⚠️ Backend 404 for ${backendUrl}, retrying without prefix: ${retryUrl}`);
+
+        const retryResponse = await fetch(retryUrl, options);
+        console.log(`✅ Retry responded with status: ${retryResponse.status}`);
+
+        if (retryResponse.headers.get('content-type')?.includes('application/pdf')) {
+          const pdfBuffer = await retryResponse.arrayBuffer();
+          return new NextResponse(pdfBuffer, {
+            status: retryResponse.status,
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': retryResponse.headers.get('content-disposition') || 'attachment',
+            },
+          });
+        }
+
+        const retryData = await retryResponse.json();
+        return NextResponse.json(retryData, {
+          status: retryResponse.status,
+        });
+      }
+    }
 
     // Handle PDF responses
     if (backendResponse.headers.get('content-type')?.includes('application/pdf')) {

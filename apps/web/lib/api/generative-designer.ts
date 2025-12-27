@@ -1,42 +1,176 @@
 /**
  * API Client - Workshop Module
  * Utilitaire pour les appels API vers le backend generative-designer
+ * 
+ * Configuration:
+ * Ajouter à .env.local:
+ *   NEXT_PUBLIC_GENERATIVE_DESIGNER_API_URL=http://localhost:8000/api/generative-designer
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_GENERATIVE_DESIGNER_API_URL || '/api/generative-designer';
+// Use `NEXT_PUBLIC_GENERATIVE_DESIGNER_API_URL` when provided, but prefer
+// the Next.js proxy route for browser requests so the Supabase session
+// (JWT) stored in cookies can be forwarded server-side.
+const rawApiUrl = process.env.NEXT_PUBLIC_GENERATIVE_DESIGNER_API_URL;
+let API_BASE_URL: string;
+
+if (typeof window !== 'undefined' && rawApiUrl && rawApiUrl.startsWith('http')) {
+  // In the browser, route through the Next proxy so the server can attach auth
+  API_BASE_URL = '/api/generative-designer';
+} else {
+  // Server-side or no explicit raw URL: use the provided raw URL or fall back
+  API_BASE_URL = rawApiUrl || 'http://localhost:8000/api/generative-designer';
+}
 
 interface FetchOptions extends RequestInit {
   throwOnError?: boolean;
+  retries?: number;
 }
 
+interface ApiError {
+  code: string;
+  message: string;
+  details?: string;
+  status: number;
+}
+
+/**
+ * Utility function to make API calls with error handling and retry logic
+ */
 async function apiCall<T>(
   endpoint: string,
   options: FetchOptions = {}
-): Promise<T> {
-  const { throwOnError = true, ...fetchOptions } = options;
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
+): Promise<{ data?: T; error?: ApiError; status: number }> {
+  const { throwOnError = true, retries = 2, ...fetchOptions } = options;
+  
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const url = `${API_BASE_URL}${endpoint}`;
+      console.debug(`[API] ${fetchOptions.method || 'GET'} ${url}`);
+      // Inject Authorization header from cookies as fallback when proxy is not used
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...fetchOptions.headers,
-      },
-      ...fetchOptions,
-    });
+        ...(fetchOptions.headers as Record<string, string> || {}),
+      };
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `API error: ${response.statusText}`);
-    }
+      try {
+        if (typeof window !== 'undefined') {
+          const cookieMap: Record<string, string> = {};
+          document.cookie.split(/;\s*/).forEach(pair => {
+            if (!pair) return;
+            const idx = pair.indexOf('=');
+            if (idx === -1) return;
+            const name = pair.slice(0, idx);
+            const value = pair.slice(idx + 1);
+            cookieMap[name] = decodeURIComponent(value);
+          });
 
-    return await response.json();
-  } catch (error) {
-    if (throwOnError) {
-      throw error;
+          const candidate = Object.keys(cookieMap).find(k =>
+            k === 'supabase.auth.token' ||
+            k === 'supabase.session' ||
+            /sb-.*-auth-token/.test(k) ||
+            /supabase-.*-auth-token/.test(k)
+          );
+
+          if (candidate) {
+            const raw = cookieMap[candidate];
+            let token: string | undefined;
+            if (raw && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(raw)) {
+              token = raw;
+            } else if (raw) {
+              try {
+                const parsed = JSON.parse(raw);
+                token = parsed?.currentSession?.access_token || parsed?.access_token || parsed?.session?.access_token;
+              } catch {
+                const m = raw.match(/access_token=([^&;]+)/);
+                if (m && m[1]) token = decodeURIComponent(m[1]);
+              }
+            }
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+          }
+        }
+      } catch {}
+
+      const response = await fetch(url, {
+        headers,
+        ...fetchOptions,
+      });
+
+      if (!response.ok) {
+        // Try to parse JSON error body, fallback to text
+        let errorData: any = {};
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          try {
+            const text = await response.text();
+            if (text) errorData = { message: text };
+          } catch {
+            errorData = {};
+          }
+        }
+
+        const apiError: ApiError = {
+          code: errorData.code || errorData.error?.code || 'UNKNOWN_ERROR',
+          message: errorData.message || errorData.error?.message || errorData.detail || response.statusText,
+          details: errorData.details || errorData.error?.details,
+          status: response.status,
+        };
+
+        console.error(`[API Error] ${response.status}:`, apiError);
+
+        // Throw a proper Error instance so callers get readable messages
+        if (throwOnError) {
+          const err = new Error(apiError.message);
+          Object.assign(err, { code: apiError.code, details: apiError.details, status: apiError.status });
+          throw err;
+        }
+
+        return { error: apiError, status: response.status };
+      }
+
+      const data = await response.json();
+      console.debug(`[API Success]`, data);
+      return { data, status: response.status };
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Retry on network errors, not on 4xx errors
+      if (attempt < retries && lastError.message.includes('Failed to fetch')) {
+        console.warn(`[API] Retrying... (attempt ${attempt + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      
+      if (throwOnError) {
+        throw lastError;
+      }
+      
+      return {
+        error: {
+          code: 'NETWORK_ERROR',
+          message: lastError.message,
+          status: 0,
+        },
+        status: 0,
+      };
     }
-    console.error('API call failed:', error);
-    return null as T;
   }
+  
+  if (throwOnError && lastError) {
+    throw lastError;
+  }
+  
+  return {
+    error: {
+      code: 'MAX_RETRIES_EXCEEDED',
+      message: 'Failed to fetch after multiple retries',
+      status: 0,
+    },
+    status: 0,
+  };
 }
 
 // ============================================================================
@@ -45,20 +179,17 @@ async function apiCall<T>(
 
 export const workshopApi = {
   // Create Workshop
-  create: (data: {
+  create: async (data: {
     title: string;
     initial_problem: string;
-    config: {
-      nb_agents: number;
-      target_ideas_count: number;
-      enabled_techniques: Record<string, string[]>;
-      agent_personalities: string[];
-    };
-  }) =>
-    apiCall('/workshops', {
+    agent_personalities: string[];
+    target_ideas_count?: number;
+  }) => {
+    return apiCall('/workshops', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+  },
 
   // Get Workshop
   get: (id: string) => apiCall(`/workshops/${id}`),
@@ -111,32 +242,32 @@ export const agentApi = {
 // ============================================================================
 
 export const phaseApi = {
-  // Start Phase
+  // Advance to a target phase (backend: /workshops/{id}/phases/advance?target_phase=)
   start: (workshopId: string, phase: number) =>
-    apiCall(`/workshops/${workshopId}/phases/${phase}/start`, {
+    apiCall(`/workshops/${workshopId}/phases/advance?target_phase=${phase}`, {
       method: 'POST',
     }),
 
-  // Get Phase Status
-  getStatus: (workshopId: string, phase: number) =>
-    apiCall(`/workshops/${workshopId}/phases/${phase}/status`),
+  // Get Phase Status (backend: /workshops/{id}/phases/status)
+  getStatus: (workshopId: string) =>
+    apiCall(`/workshops/${workshopId}/phases/status`),
 
-  // Complete Phase
+  // NOTE: These endpoints (/complete, /data) are not implemented in the backend
+  // in the current API; keep stubs to avoid breaking callers but they map to
+  // generic workshop endpoints and may need backend additions.
   complete: (workshopId: string, phase: number, data: Record<string, any>) =>
-    apiCall(`/workshops/${workshopId}/phases/${phase}/complete`, {
+    apiCall(`/workshops/${workshopId}/phases/advance?target_phase=${phase}`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  // Get Phase Data
   getData: (workshopId: string, phase: number) =>
-    apiCall(`/workshops/${workshopId}/phases/${phase}/data`),
+    apiCall(`/workshops/${workshopId}/phases/status`),
 
-  // Save Phase Data
   saveData: (workshopId: string, phase: number, data: Record<string, any>) =>
-    apiCall(`/workshops/${workshopId}/phases/${phase}/data`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+    apiCall(`/workshops/${workshopId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ phase_data: { [`phase${phase}`]: data } }),
     }),
 };
 

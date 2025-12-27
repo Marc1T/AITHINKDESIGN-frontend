@@ -13,3 +13,7 @@ export { TRIZChat } from './triz/triz-chat';
 
 // Cahier
 export { GenerateCahier } from './cahier/generate-cahier';
+
+// SSE
+export { SSEProvider } from './sse/sse-provider';
+export { ActivityFeed } from './sse/activity-feed';

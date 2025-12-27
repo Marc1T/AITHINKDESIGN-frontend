@@ -11,7 +11,7 @@ import { Input } from '@kit/ui/input';
 import { Loader2, Send, User, Bot } from 'lucide-react';
 import { useChat } from '../../hooks/use-chat';
 import type { IdeationResponse } from '../../types';
-import { cn } from '@kit/ui/utils';
+import { cn } from '../../lib/utils';
 
 interface ChatModeProps {
   onSuccess: (ideation: IdeationResponse) => void;

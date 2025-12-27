@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@kit/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
@@ -21,55 +21,79 @@ import {
 } from '@kit/ui/dialog';
 import { Label } from '@kit/ui/label';
 import { Textarea } from '@kit/ui/textarea';
+import { 
+  useWorkshops, 
+  useCreateWorkshop, 
+  useDeleteWorkshop 
+} from '@kit/generative-designer/hooks';
 
-interface Workshop {
-  id: string;
-  title: string;
-  initial_problem: string;
-  current_phase: number;
-  status: string;
-  created_at: string;
-  completed_at?: string;
-}
-
-export const WorkshopsListPage = () => {
+export default function WorkshopsListPage() {
   const router = useRouter();
-  const [workshops, setWorkshops] = useState<Workshop[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newWorkshop, setNewWorkshop] = useState({
     title: '',
     initial_problem: '',
+    agent_personalities: ['creative', 'pragmatic', 'technical'] as const,
+    target_ideas_count: 20,
   });
 
-  useEffect(() => {
-    // TODO: Fetch workshops from API
-    setIsLoading(false);
-  }, []);
+  // Use React Query hooks
+  const { data: workshops = [], isLoading } = useWorkshops();
+  const { mutate: createWorkshop, isPending: isCreating } = useCreateWorkshop();
+  const { mutate: deleteWorkshop } = useDeleteWorkshop();
 
-  const handleCreateWorkshop = async () => {
-    setIsCreating(true);
-    try {
-      // TODO: API call to create workshop
-      // const response = await fetch('/api/generative-designer/workshops', {
-      //   method: 'POST',
-      //   body: JSON.stringify(newWorkshop),
-      // });
-      // const workshop = await response.json();
-      // router.push(`/home/designer/workshops/${workshop.id}/config`);
-    } finally {
-      setIsCreating(false);
+  const handleCreateWorkshop = () => {
+    if (!newWorkshop.title.trim() || !newWorkshop.initial_problem.trim()) {
+      alert('Veuillez remplir tous les champs');
+      return;
     }
+
+    createWorkshop(
+      {
+        title: newWorkshop.title,
+        initial_problem: newWorkshop.initial_problem,
+        agent_personalities: newWorkshop.agent_personalities,
+        target_ideas_count: newWorkshop.target_ideas_count,
+      },
+      {
+        onSuccess: (data) => {
+          const workshopId = (data as any)?.workshop_id || (data as any)?.id;
+          setIsDialogOpen(false);
+          setNewWorkshop({ 
+            title: '', 
+            initial_problem: '',
+            agent_personalities: ['creative', 'pragmatic', 'technical'],
+            target_ideas_count: 20,
+          });
+          if (workshopId) router.push(`/home/designer/workshops/${workshopId}`);
+        },
+        onError: (error) => {
+          alert(`Erreur: ${error.message}`);
+        },
+      }
+    );
   };
 
-  const handleDeleteWorkshop = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce workshop ?')) return;
-    // TODO: API call to delete
+  const handleDeleteWorkshop = (id: string, title: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${title}" ?`)) return;
+
+    deleteWorkshop(id, {
+      onError: (error) => {
+        alert(`Erreur: ${error.message}`);
+      },
+    });
   };
 
   const getPhaseInfo = (phase: number) => {
-    const phases = ['Configuration', 'Empathie', 'Idéation', 'Convergence', 'TRIZ', 'Sélection', 'Prototype'];
-    return phases[phase] || 'Inconnu';
+    const phases = [
+      { name: 'Configuration', icon: '⚙️' },
+      { name: 'Empathie', icon: '❤️' },
+      { name: 'Idéation', icon: '💡' },
+      { name: 'Convergence', icon: '🎯' },
+      { name: 'TRIZ', icon: '⚙️' },
+      { name: 'Sélection', icon: '✨' },
+    ];
+    return phases[phase] || phases[0];
   };
 
   const getStatusColor = (status: string) => {
@@ -80,9 +104,21 @@ export const WorkshopsListPage = () => {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'completed':
         return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200';
+      case 'archived':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: 'Brouillon',
+      active: 'En cours',
+      completed: 'Terminé',
+      archived: 'Archivé',
+    };
+    return labels[status] || status;
   };
 
   return (
@@ -99,7 +135,7 @@ export const WorkshopsListPage = () => {
         </div>
 
         {/* Create Workshop Button */}
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2" size="lg">
               ✨ Nouveau Workshop
@@ -135,6 +171,20 @@ export const WorkshopsListPage = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="ideas">Nombre d'idées à générer</Label>
+                <Input
+                  id="ideas"
+                  type="number"
+                  min="10"
+                  max="100"
+                  value={newWorkshop.target_ideas_count}
+                  onChange={(e) =>
+                    setNewWorkshop((p) => ({ ...p, target_ideas_count: parseInt(e.target.value) || 20 }))
+                  }
+                />
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <DialogClose asChild>
                   <Button variant="outline">Annuler</Button>
@@ -142,8 +192,9 @@ export const WorkshopsListPage = () => {
                 <Button
                   onClick={handleCreateWorkshop}
                   disabled={isCreating || !newWorkshop.title}
+                  className="gap-2"
                 >
-                  {isCreating ? 'Création...' : 'Créer'}
+                  {isCreating ? '⏳ Création...' : '✨ Créer'}
                 </Button>
               </div>
             </div>
@@ -151,12 +202,8 @@ export const WorkshopsListPage = () => {
         </Dialog>
       </div>
 
-      {/* Workshops Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Chargement des workshops...</p>
-        </div>
-      ) : workshops.length === 0 ? (
+      {/* Error State */}
+      {isLoading === false && workshops.length === 0 && (
         <Card className="border-dashed border-2 border-border">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-2xl mb-2">🎯</p>
@@ -166,89 +213,90 @@ export const WorkshopsListPage = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Créez votre premier workshop de Design Thinking collaboratif
             </p>
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="mt-4 gap-2">✨ Créer le premier</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
-                {/* Same dialog content */}
-              </DialogContent>
             </Dialog>
           </CardContent>
         </Card>
-      ) : (
+      )}
+
+      {/* Workshops Grid */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {workshops.map((workshop) => (
-            <Card
-              key={workshop.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer hover:border-blue-500"
-              onClick={() => router.push(`/home/designer/workshops/${workshop.id}`)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <CardTitle className="text-lg leading-tight">
+          {workshops.map((workshop, index) => {
+            const phaseInfo = getPhaseInfo((workshop as any).current_phase || 0);
+            const id = (workshop as any).workshop_id || (workshop as any).id || index;
+            return (
+              <Card
+                key={id}
+                className="hover:shadow-lg transition-shadow cursor-pointer hover:border-blue-500 overflow-hidden group"
+              >
+                <CardHeader 
+                  className="pb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950"
+                  onClick={() => router.push(`/home/designer/workshops/${id}`)}
+                >
+                  <div className="space-y-2">
+                    <CardTitle className="line-clamp-2 text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400">
                       {workshop.title}
                     </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className={`mt-2 ${getStatusColor(workshop.status)}`}
-                    >
-                      {workshop.status.toUpperCase()}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {workshop.initial_problem}
+                    </p>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-4">
+                  {/* Phase Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <span className="text-2xl">{phaseInfo.icon}</span>
+                      <p className="text-xs text-muted-foreground mt-1">Phase {(workshop as any).current_phase || 0}</p>
+                      <p className="text-sm font-semibold">{phaseInfo.name}</p>
+                    </div>
+                    <Badge className={getStatusColor((workshop as any).status || 'draft')}>
+                      {getStatusLabel((workshop as any).status || 'draft')}
                     </Badge>
                   </div>
-                  <div className="text-2xl">{workshop.current_phase >= 6 ? '✅' : '⏳'}</div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Phase actuelle</p>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold text-foreground">
-                      {getPhaseInfo(workshop.current_phase)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      ({workshop.current_phase}/6)
-                    </div>
+
+                  {/* Date */}
+                  <div className="text-xs text-muted-foreground">
+                    <p>Créé: {new Date((workshop as any).created_at).toLocaleDateString('fr-FR')}</p>
+                    {(workshop as any).completed_at && (
+                      <p>Complété: {new Date((workshop as any).completed_at).toLocaleDateString('fr-FR')}</p>
+                    )}
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Problème</p>
-                  <p className="text-sm text-foreground line-clamp-2">
-                    {workshop.initial_problem}
-                  </p>
-                </div>
-
-                <div className="pt-4 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/home/designer/workshops/${workshop.id}`);
-                    }}
-                    className="flex-1"
-                  >
-                    Continuer →
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteWorkshop(workshop.id);
-                    }}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    🗑️
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/home/designer/workshops/${id}`);
+                      }}
+                    >
+                      Continuer →
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWorkshop(id as string, workshop.title);
+                      }}
+                    >
+                      🗑️
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      )}
     </div>
   );
-};
+}

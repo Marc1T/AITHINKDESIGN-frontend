@@ -12,8 +12,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { use } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { WorkshopHeader } from '../_components/workshop-header';
 import { WorkshopSidebar } from '../_components/workshop-sidebar';
@@ -22,16 +21,7 @@ import { Phase2Ideation } from '../_components/phase-2-ideation';
 import { Phase3Convergence } from '../_components/phase-3-convergence';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Button } from '@kit/ui/button';
-import {
-  useWorkshop,
-  useDeleteWorkshop,
-  useAdvancePhase,
-  usePhaseStatus,
-} from '@kit/generative-designer/hooks';
-import {
-  SSEProvider,
-  ActivityFeed,
-} from '@kit/generative-designer/components';
+import { generativeDesignerApi } from '~/lib/api/generative-designer';
 
 interface Workshop {
   id: string;
@@ -48,7 +38,6 @@ interface Agent {
   id: string;
   personality: string;
   display_name: string;
-  avatar_emoji: string;
   contributions_count: number;
   total_tokens_used: number;
   is_active: boolean;
@@ -65,31 +54,106 @@ interface Idea {
   votes_count?: number;
 }
 
-function WorkshopDetailContent() {
+export default function WorkshopDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const workshopId = (params.id || '') as string;
+  const workshopId = params.id as string;
 
   // State Management
-  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>();
-  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [workshop, setWorkshop] = useState<Workshop | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>();
+  
+  // UI State
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Use React Query hooks
-  const { data: workshop, isLoading, error } = useWorkshop(workshopId);
-  const { mutate: deleteWorkshop } = useDeleteWorkshop();
-  const { mutate: advancePhase, isPending: isAdvancing } = useAdvancePhase();
-  const { data: phaseStatus } = usePhaseStatus(workshopId);
+  // ====================================================================
+  // API Calls
+  // ====================================================================
+
+  const loadWorkshop = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch workshop data
+      const workshopResult = await generativeDesignerApi.workshop.get(workshopId);
+      if (workshopResult.error) {
+        setError(workshopResult.error.message);
+        return;
+      }
+
+      if (workshopResult.data) {
+        setWorkshop(workshopResult.data);
+
+        // Fetch agents for this workshop
+        const agentsResult = await generativeDesignerApi.agent.list(workshopId);
+        if (agentsResult.data) {
+          setAgents(agentsResult.data);
+        }
+
+        // Fetch ideas if not in phase 1
+        if (workshopResult.data.current_phase > 1) {
+          const ideasResult = await generativeDesignerApi.idea.list(workshopId);
+          if (ideasResult.data) {
+            setIdeas(ideasResult.data);
+          }
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur de chargement du workshop';
+      setError(message);
+      console.error('Failed to load workshop:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [workshopId]);
+
+  // Load workshop on mount
+  useEffect(() => {
+    loadWorkshop();
+  }, [loadWorkshop]);
 
   const handlePhaseComplete = async (phaseNumber: number, data: any) => {
     if (!workshop) return;
 
     setIsSaving(true);
     try {
-      // TODO: Use appropriate mutation hook when created
-      console.log(`✅ Phase ${phaseNumber} completed with data:`, data);
-      // await completePhase mutation
+      // Save phase data
+      const result = await generativeDesignerApi.phase.saveData(
+        workshopId,
+        phaseNumber,
+        data
+      );
+
+      if (result.error) {
+        alert(`Erreur: ${result.error.message}`);
+        return;
+      }
+
+      // Complete phase
+      const completeResult = await generativeDesignerApi.phase.complete(
+        workshopId,
+        phaseNumber,
+        data
+      );
+
+      if (completeResult.error) {
+        alert(`Erreur: ${completeResult.error.message}`);
+        return;
+      }
+
+      // Update local state - move to next phase
+      setWorkshop({
+        ...workshop,
+        current_phase: phaseNumber + 1,
+        phase_data: { ...workshop.phase_data, [phaseNumber]: data },
+      });
+
+      console.log(`✅ Phase ${phaseNumber} completed successfully`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde';
       alert(message);
@@ -101,14 +165,34 @@ function WorkshopDetailContent() {
 
   const handlePreviousPhase = () => {
     if (!workshop || workshop.current_phase <= 1) return;
-    // TODO: Use phase navigation mutation
-    console.log('Moving to previous phase');
+    setWorkshop({
+      ...workshop,
+      current_phase: workshop.current_phase - 1,
+    });
+  };
+
+  const handlePhaseJump = async (phaseNumber: number) => {
+    if (!workshop) return;
+    if (phaseNumber < 1 || phaseNumber > workshop.current_phase) {
+      alert('Vous ne pouvez pas sauter à cette phase');
+      return;
+    }
+
+    setWorkshop({
+      ...workshop,
+      current_phase: phaseNumber,
+    });
   };
 
   const handleExport = async () => {
     try {
-      // TODO: Use export mutation
-      console.log('Workshop export initiated');
+      const result = await generativeDesignerApi.workshop.export(workshopId);
+      if (result.error) {
+        alert(`Erreur: ${result.error.message}`);
+        return;
+      }
+      // In a real app, this would trigger a download
+      console.log('Workshop exported:', result.data);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur lors de l\'export');
     }
@@ -117,14 +201,16 @@ function WorkshopDetailContent() {
   const handleDelete = async () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce workshop ?')) return;
 
-    deleteWorkshop(workshopId, {
-      onSuccess: () => {
-        router.push('/home/designer/workshops');
-      },
-      onError: (error) => {
-        alert(`Erreur: ${error.message}`);
-      },
-    });
+    try {
+      const result = await generativeDesignerApi.workshop.delete(workshopId);
+      if (result.error) {
+        alert(`Erreur: ${result.error.message}`);
+        return;
+      }
+      router.push('/home/designer/workshops');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    }
   };
 
   // ====================================================================
@@ -147,8 +233,8 @@ function WorkshopDetailContent() {
       <div className="flex items-center justify-center h-screen">
         <Card className="max-w-md border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
           <CardContent className="pt-6 space-y-4">
-            <p className="text-red-600 dark:text-red-400">❌ {error instanceof Error ? error.message : String(error)}</p>
-            <Button onClick={() => window.location.reload()}>Réessayer</Button>
+            <p className="text-red-600 dark:text-red-400">❌ {error}</p>
+            <Button onClick={() => loadWorkshop()}>Réessayer</Button>
             <Button variant="outline" onClick={() => router.back()}>Retour</Button>
           </CardContent>
         </Card>
@@ -172,49 +258,28 @@ function WorkshopDetailContent() {
   }
 
   const renderPhaseContent = () => {
-    if (workshop.current_phase === 0) {
-      return (
-        <Card className="m-6">
-          <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white">
-            <CardTitle className="text-xl">⚙️ Phase 0 - Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
-            <p className="text-muted-foreground">Votre workshop est configuré. Démarrez la Phase 1 pour lancer l'analyse d'empathie.</p>
-            <div className="flex items-center gap-4 mt-4">
-              <Button onClick={() => advancePhase({ workshopId, targetPhase: 1 })} disabled={isAdvancing}>
-                {isAdvancing ? 'Démarrage...' : 'Démarrer Phase 1 (Empathy)'}
-              </Button>
-              <Button variant="outline" onClick={() => console.log('Edit config')}>Modifier</Button>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
     switch (workshop.current_phase) {
       case 1:
         return (
           <Phase1Empathy
-            workshopId={workshopId}
-            data={workshop.phase_data?.phase1}
-            onComplete={() => handlePhaseComplete(1, workshop.phase_data?.phase1)}
+            problemStatement={workshop.initial_problem}
+            onNext={(data) => handlePhaseComplete(1, data)}
           />
         );
 
       case 2:
         return (
           <Phase2Ideation
-            workshopId={workshopId}
             ideas={ideas}
-            onComplete={() => handlePhaseComplete(2, ideas)}
+            onComplete={(selectedIdeas) => handlePhaseComplete(2, selectedIdeas)}
           />
         );
 
       case 3:
         return (
           <Phase3Convergence
-            workshopId={workshopId}
-            data={workshop.phase_data?.phase3}
-            onComplete={() => handlePhaseComplete(3, workshop.phase_data?.phase3)}
+            ideas={ideas}
+            onComplete={(selectedIdeas) => handlePhaseComplete(3, selectedIdeas)}
           />
         );
 
@@ -298,34 +363,32 @@ function WorkshopDetailContent() {
       <div className="w-72 border-r border-border overflow-hidden flex flex-col">
         <WorkshopSidebar
           agents={agents}
-          workshopId={workshopId}
+          selectedAgentId={selectedAgentId}
+          onSelectAgent={setSelectedAgentId}
+          workshopTitle={workshop.title}
         />
-        
-        {/* Activity Feed */}
-        <div className="border-t border-border p-4 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Live Activity</h3>
-          <ActivityFeed />
-        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <WorkshopHeader
-          title={workshop?.title || 'Workshop'}
-          initialProblem={workshop?.initial_problem || ''}
-          currentPhase={workshop?.current_phase || 0}
-          status={workshop?.status || 'draft'}
+          title={workshop.title}
+          currentPhase={workshop.current_phase}
+          status={workshop.status}
+          onExport={handleExport}
+          onArchive={() => console.log('Archiving...')}
+          onDelete={handleDelete}
         />
 
         {/* Phase Navigation */}
         <div className="px-6 py-3 border-b border-border bg-gray-50/50 dark:bg-slate-900/50">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Phase {workshop?.current_phase || 0} / 5
+              Phase {workshop.current_phase} / 5
             </div>
             <div className="flex gap-2">
-              {workshop && workshop.current_phase > 1 && (
+              {workshop.current_phase > 1 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -350,17 +413,5 @@ function WorkshopDetailContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Wrapper component with SSEProvider
-export default function WorkshopDetailPage() {
-  const params = useParams();
-  const workshopId = params.id as string;
-
-  return (
-    <SSEProvider workshopId={workshopId}>
-      <WorkshopDetailContent />
-    </SSEProvider>
   );
 }

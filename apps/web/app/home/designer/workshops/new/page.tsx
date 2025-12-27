@@ -5,8 +5,8 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@kit/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Label } from '@kit/ui/label';
@@ -14,17 +14,32 @@ import { Input } from '@kit/ui/input';
 import { Textarea } from '@kit/ui/textarea';
 import { Slider } from '@kit/ui/slider';
 import { Badge } from '@kit/ui/badge';
-import { agentPersonalities } from '../_components/workshop-theme';
+import { generativeDesignerApi } from '~/lib/api/generative-designer';
+import { agentPersonalities, type AgentPersonality } from '../_components/workshop-theme';
 
-const agents = Object.entries(agentPersonalities).map(([key, value]) => ({
+interface AgentWithId extends AgentPersonality {
+  id: string;
+}
+
+const agents: AgentWithId[] = Object.entries(agentPersonalities).map(([key, value]) => ({
   id: key,
   ...value,
 }));
 
+interface WorkshopData {
+  title?: string;
+  initial_problem?: string;
+  id?: string;
+}
+
 export default function NewWorkshopPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const workshopId = searchParams.get('id'); // For pre-populated data
+
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Agents, 3: Configuration
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Step 1: Basic Info
   const [title, setTitle] = useState('');
@@ -37,13 +52,38 @@ export default function NewWorkshopPage() {
 
   // Step 3: Configuration
   const [targetIdeas, setTargetIdeas] = useState(20);
-  const [enabledTechniques, setEnabledTechniques] = useState({
+  const [enabledTechniques] = useState({
     phase1: ['empathy_map', 'customer_journey', 'hmw'],
     phase2: ['scamper', 'random_word', 'worst_idea'],
     phase3: ['dot_voting', 'now_how_wow', 'impact_effort'],
     phase4: ['triz'],
     phase5: ['assumption_mapping', 'impact_effort'],
   });
+
+  // Load workshop data if editing
+  useEffect(() => {
+    if (workshopId) {
+      loadWorkshop(workshopId);
+    }
+  }, [workshopId]);
+
+  const loadWorkshop = async (id: string) => {
+    try {
+      const result = await generativeDesignerApi.workshop.get(id) as { data?: WorkshopData; error?: { message: string } };
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      if (result.data) {
+        setTitle(result.data.title || '');
+        setProblem(result.data.initial_problem || '');
+        // Load more data as needed
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur de chargement';
+      setError(message);
+    }
+  };
 
   const toggleAgent = (agentId: string) => {
     const newSelected = new Set(selectedAgents);
@@ -56,29 +96,37 @@ export default function NewWorkshopPage() {
   };
 
   const handleSubmit = async () => {
-    if (!title || !problem || selectedAgents.size === 0) {
+    if (!title.trim() || !problem.trim() || selectedAgents.size === 0) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
     setIsSubmitting(true);
+    setError(null);
+
     try {
-      // TODO: API call to create workshop
-      // const response = await fetch('/api/generative-designer/workshops', {
-      //   method: 'POST',
-      //   body: JSON.stringify({
-      //     title,
-      //     initial_problem: problem,
-      //     config: {
-      //       nb_agents: selectedAgents.size,
-      //       target_ideas_count: targetIdeas,
-      //       enabled_techniques: enabledTechniques,
-      //       agent_personalities: Array.from(selectedAgents),
-      //     },
-      //   }),
-      // });
-      // const data = await response.json();
-      // router.push(`/home/designer/workshops/${data.id}`);
+      const result = await generativeDesignerApi.workshop.create({
+        title: title.trim(),
+        initial_problem: problem.trim(),
+        agent_personalities: Array.from(selectedAgents),
+        target_ideas_count: targetIdeas,
+      });
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      if (result.data) {
+        const data = result.data as { workshop_id?: string; id?: string };
+        const newWorkshopId = data.workshop_id || data.id;
+        // Redirect to the workshop detail page
+        if (newWorkshopId) router.push(`/home/designer/workshops/${newWorkshopId}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la création';
+      setError(message);
+      console.error('Failed to create workshop:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,6 +144,15 @@ export default function NewWorkshopPage() {
             Configuration pas à pas
           </p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
+            <CardContent className="pt-6">
+              <p className="text-red-600 dark:text-red-400">❌ {error}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Progress Steps */}
         <div className="flex gap-3">
@@ -247,7 +304,7 @@ export default function NewWorkshopPage() {
                         {agent.description}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {agent.strengths.map((strength) => (
+                        {agent.strengths.map((strength: string) => (
                           <Badge
                             key={strength}
                             variant="outline"
@@ -299,7 +356,7 @@ export default function NewWorkshopPage() {
                     max={100}
                     step={5}
                     value={[targetIdeas]}
-                    onValueChange={(value) => setTargetIdeas(value[0])}
+                    onValueChange={(value: number[]) => setTargetIdeas(value[0] ?? targetIdeas)}
                     className="mt-3"
                   />
                   <p className="text-sm text-muted-foreground mt-2">

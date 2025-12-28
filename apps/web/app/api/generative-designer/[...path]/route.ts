@@ -56,9 +56,10 @@ async function proxyRequest(
       );
     }
 
-    // Build backend URL
+    // Build backend URL with query parameters
     const path = pathSegments.join('/');
-    const backendUrl = `${BACKEND_URL}/${path}`;
+    const queryString = request.nextUrl.search; // Includes the '?' if present
+    const backendUrl = `${BACKEND_URL}/${path}${queryString}`;
 
     console.log(`🔄 Proxying ${method} request to: ${backendUrl}`);
 
@@ -80,13 +81,19 @@ async function proxyRequest(
         options.body = formData as any;
         // Don't set Content-Type header, let fetch handle it
       } else if (contentType?.includes('application/json')) {
-        // Forward JSON body
+        // Forward JSON body - handle empty body gracefully
         try {
-          const body = await request.json();
-          options.body = JSON.stringify(body);
+          const text = await request.text();
+          if (text && text.trim()) {
+            const body = JSON.parse(text);
+            options.body = JSON.stringify(body);
+          }
+          // Always set Content-Type for JSON requests
           (options.headers as Record<string, string>)['Content-Type'] = 'application/json';
         } catch (e) {
-          console.error('❌ Failed to parse JSON body:', e);
+          console.warn('⚠️ No JSON body or parse error, continuing without body:', e);
+          // Still set content-type in case backend expects it
+          (options.headers as Record<string, string>)['Content-Type'] = 'application/json';
         }
       }
     }
@@ -95,6 +102,20 @@ async function proxyRequest(
     const backendResponse = await fetch(backendUrl, options);
 
     console.log(`✅ Backend responded with status: ${backendResponse.status}`);
+
+    // Handle SSE (Server-Sent Events) streaming responses
+    const contentType = backendResponse.headers.get('content-type') || '';
+    if (contentType.includes('text/event-stream')) {
+      // Stream the SSE response directly to the client
+      return new Response(backendResponse.body, {
+        status: backendResponse.status,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
 
     // Fallback: if backend returned 404 and the incoming path included
     // the `/api/generative-designer` prefix, retry the request without it.

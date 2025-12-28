@@ -1,142 +1,76 @@
 /**
- * Page: Workshop Detail - INTEGRATED VERSION
- * Interface principale du workshop avec phases
- * 
- * Intégration API complète avec:
- * - Chargement des données du workshop
- * - Gestion des agents
- * - Navigation entre les phases
- * - Sauvegarde des données de phase
- * - Streaming en temps réel
+ * Workshop Detail Page
+ * URL: /home/designer/workshops/[id]
  */
 
 'use client';
 
-import React, { useState } from 'react';
-import { use } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { WorkshopHeader } from '../_components/workshop-header';
-import { WorkshopSidebar } from '../_components/workshop-sidebar';
-import { Phase1Empathy } from '../_components/phase-1-empathy';
-import { Phase2Ideation } from '../_components/phase-2-ideation';
-import { Phase3Convergence } from '../_components/phase-3-convergence';
-import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Button } from '@kit/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
+import { Badge } from '@kit/ui/badge';
+import { useWorkshop, useAdvancePhase, useDeleteWorkshop } from '@kit/generative-designer/hooks';
+import { PhaseProgress } from '../_components/phase-progress';
+import { AGENT_PERSONALITIES, PHASE_CONFIG, type Workshop, type SSEEvent } from '../_lib/types';
+import { createSSEStream } from '../_lib/api';
+
 import {
-  useWorkshop,
-  useDeleteWorkshop,
-  useAdvancePhase,
-  usePhaseStatus,
-} from '@kit/generative-designer/hooks';
-import {
-  SSEProvider,
-  ActivityFeed,
-} from '@kit/generative-designer/components';
+  Phase0Setup,
+  Phase1Empathy,
+  Phase2Ideation,
+  Phase3Convergence,
+  Phase4Triz,
+  Phase5Selection,
+} from './_phases';
 
-interface Workshop {
-  id: string;
-  title: string;
-  initial_problem: string;
-  current_phase: number;
-  status: string;
-  phase_data: Record<string, any>;
-  created_at: string;
-  user_id?: string;
-}
-
-interface Agent {
-  id: string;
-  personality: string;
-  display_name: string;
-  avatar_emoji: string;
-  contributions_count: number;
-  total_tokens_used: number;
-  is_active: boolean;
-}
-
-interface Idea {
-  id: string;
-  agent_name: string;
-  agent_personality: string;
-  title: string;
-  content: string;
-  technique: string;
-  timestamp: Date;
-  votes_count?: number;
-}
-
-function WorkshopDetailContent() {
+export default function WorkshopDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const workshopId = (params.id || '') as string;
+  const workshopId = params.id as string;
 
-  // State Management
-  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>();
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Use React Query hooks
-  const { data: workshop, isLoading, error } = useWorkshop(workshopId);
-  const { mutate: deleteWorkshop } = useDeleteWorkshop();
+  const { data: workshop, isLoading, error, refetch } = useWorkshop(workshopId);
   const { mutate: advancePhase, isPending: isAdvancing } = useAdvancePhase();
-  const { data: phaseStatus } = usePhaseStatus(workshopId);
+  const { mutate: deleteWorkshop } = useDeleteWorkshop();
 
-  const handlePhaseComplete = async (phaseNumber: number, data: any) => {
-    if (!workshop) return;
+  const [sseEvents, setSseEvents] = useState<SSEEvent[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
 
-    setIsSaving(true);
-    try {
-      // TODO: Use appropriate mutation hook when created
-      console.log(`✅ Phase ${phaseNumber} completed with data:`, data);
-      // await completePhase mutation
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde';
-      alert(message);
-      console.error('Failed to complete phase:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const typedWorkshop = workshop as Workshop | undefined;
 
-  const handlePreviousPhase = () => {
-    if (!workshop || workshop.current_phase <= 1) return;
-    // TODO: Use phase navigation mutation
-    console.log('Moving to previous phase');
-  };
+  useEffect(() => {
+    if (!workshopId || !typedWorkshop || typedWorkshop.status === 'completed') return;
 
-  const handleExport = async () => {
-    try {
-      // TODO: Use export mutation
-      console.log('Workshop export initiated');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de l\'export');
-    }
-  };
+    const cleanup = createSSEStream(workshopId, (event: SSEEvent) => {
+      setSseEvents((prev) => [...prev.slice(-50), event]);
+      if (event.type === 'phase_completed') refetch();
+    });
 
-  const handleDelete = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce workshop ?')) return;
+    setIsConnected(true);
+    return () => { cleanup(); setIsConnected(false); };
+  }, [workshopId, typedWorkshop?.status, refetch]);
 
+  const handleAdvancePhase = useCallback((targetPhase: number) => {
+    advancePhase({ workshopId, targetPhase }, {
+      onSuccess: () => refetch(),
+      onError: (err) => alert(`Erreur: ${err.message}`),
+    });
+  }, [workshopId, advancePhase, refetch]);
+
+  const handleDelete = () => {
+    if (!confirm('Supprimer ce workshop ?')) return;
     deleteWorkshop(workshopId, {
-      onSuccess: () => {
-        router.push('/home/designer/workshops');
-      },
-      onError: (error) => {
-        alert(`Erreur: ${error.message}`);
-      },
+      onSuccess: () => router.push('/home/designer/workshops'),
+      onError: (err) => alert(`Erreur: ${err.message}`),
     });
   };
 
-  // ====================================================================
-  // Rendering
-  // ====================================================================
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
-          <div className="animate-spin text-4xl">⏳</div>
-          <p className="text-muted-foreground">Chargement du workshop...</p>
+          <div className="text-6xl animate-bounce">⏳</div>
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
@@ -144,223 +78,125 @@ function WorkshopDetailContent() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-screen p-6">
         <Card className="max-w-md border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
-          <CardContent className="pt-6 space-y-4">
-            <p className="text-red-600 dark:text-red-400">❌ {error instanceof Error ? error.message : String(error)}</p>
-            <Button onClick={() => window.location.reload()}>Réessayer</Button>
-            <Button variant="outline" onClick={() => router.back()}>Retour</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!workshop) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 space-y-4">
-            <p className="text-destructive">❌ Workshop non trouvé</p>
-            <Button onClick={() => router.push('/home/designer/workshops')}>
-              Retour à la liste
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const renderPhaseContent = () => {
-    if (workshop.current_phase === 0) {
-      return (
-        <Card className="m-6">
-          <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white">
-            <CardTitle className="text-xl">⚙️ Phase 0 - Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
-            <p className="text-muted-foreground">Votre workshop est configuré. Démarrez la Phase 1 pour lancer l'analyse d'empathie.</p>
-            <div className="flex items-center gap-4 mt-4">
-              <Button onClick={() => advancePhase({ workshopId, targetPhase: 1 })} disabled={isAdvancing}>
-                {isAdvancing ? 'Démarrage...' : 'Démarrer Phase 1 (Empathy)'}
-              </Button>
-              <Button variant="outline" onClick={() => console.log('Edit config')}>Modifier</Button>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <p className="text-red-600">❌ {error instanceof Error ? error.message : 'Erreur'}</p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => refetch()}>Réessayer</Button>
+              <Button variant="outline" onClick={() => router.back()}>Retour</Button>
             </div>
           </CardContent>
         </Card>
-      );
-    }
-    switch (workshop.current_phase) {
-      case 1:
-        return (
-          <Phase1Empathy
-            workshopId={workshopId}
-            data={workshop.phase_data?.phase1}
-            onComplete={() => handlePhaseComplete(1, workshop.phase_data?.phase1)}
-          />
-        );
+      </div>
+    );
+  }
 
-      case 2:
-        return (
-          <Phase2Ideation
-            workshopId={workshopId}
-            ideas={ideas}
-            onComplete={() => handlePhaseComplete(2, ideas)}
-          />
-        );
+  if (!typedWorkshop) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-6">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 space-y-4 text-center">
+            <p className="text-muted-foreground">🔍 Workshop non trouvé</p>
+            <Button onClick={() => router.push('/home/designer/workshops')}>Retour</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-      case 3:
-        return (
-          <Phase3Convergence
-            workshopId={workshopId}
-            data={workshop.phase_data?.phase3}
-            onComplete={() => handlePhaseComplete(3, workshop.phase_data?.phase3)}
-          />
-        );
+  const currentPhase = typedWorkshop.current_phase;
+  const phaseConfig = PHASE_CONFIG[currentPhase] ?? PHASE_CONFIG[0]!;
+  
+  // Extract agent personalities from agents array for phase components
+  const agentPersonalities = typedWorkshop.agents?.map(a => a.personality) || [];
+  const workshopWithPersonalities = {
+    ...typedWorkshop,
+    agent_personalities: agentPersonalities,
+    target_ideas_count: typedWorkshop.config?.target_ideas_count || 20,
+  };
+  
+  const phaseProps = { workshop: workshopWithPersonalities, workshopId, onAdvancePhase: handleAdvancePhase, isAdvancing, sseEvents, refetch };
 
-      case 4:
-        return (
-          <Card className="m-6">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-              <CardTitle className="text-xl">⚙️ Phase 4 - TRIZ (Enrichissement Technique)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <p className="text-muted-foreground">
-                Enrichissement technique avec les 40 principes inventifs TRIZ.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                L'analyse TRIZ vous aide à résoudre les contradictions techniques
-                en s'appuyant sur les brevets et innovations de tous les secteurs.
-              </p>
-
-              <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
-                <p className="text-sm">
-                  <strong>Top idées:</strong> {ideas.slice(0, 3).map(i => i.title).join(', ') || 'Aucune'}
-                </p>
-              </div>
-
-              <Button className="mt-4 gap-2 w-full">
-                🔧 Lancer l'analyse TRIZ →
-              </Button>
-            </CardContent>
-          </Card>
-        );
-
-      case 5:
-        return (
-          <Card className="m-6">
-            <CardHeader className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
-              <CardTitle className="text-xl">✨ Phase 5 - Sélection Finale</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <p className="text-muted-foreground">
-                Sélectionnez le concept final et générez le cahier de charge détaillé.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4 my-4">
-                <Card className="border-dashed">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-2xl font-bold text-emerald-600">{ideas.length}</p>
-                    <p className="text-xs text-muted-foreground">Idées totales</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-dashed">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-2xl font-bold text-blue-600">{agents.length}</p>
-                    <p className="text-xs text-muted-foreground">Agents</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Button className="mt-4 gap-2 w-full">
-                📄 Générer le cahier de charge →
-              </Button>
-            </CardContent>
-          </Card>
-        );
-
-      default:
-        return (
-          <Card className="m-6">
-            <CardContent className="py-8">
-              <p className="text-center text-muted-foreground">
-                🎉 Workshop complété avec succès!
-              </p>
-            </CardContent>
-          </Card>
-        );
+  const renderPhase = () => {
+    switch (currentPhase) {
+      case 0: return <Phase0Setup {...phaseProps} />;
+      case 1: return <Phase1Empathy {...phaseProps} />;
+      case 2: return <Phase2Ideation {...phaseProps} />;
+      case 3: return <Phase3Convergence {...phaseProps} />;
+      case 4: return <Phase4Triz {...phaseProps} />;
+      case 5: return <Phase5Selection {...phaseProps} />;
+      default: return <Phase0Setup {...phaseProps} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className="w-72 border-r border-border overflow-hidden flex flex-col">
-        <WorkshopSidebar
-          agents={agents}
-          workshopId={workshopId}
-        />
-        
-        {/* Activity Feed */}
-        <div className="border-t border-border p-4 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Live Activity</h3>
-          <ActivityFeed />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => router.push('/home/designer/workshops')}>← Dashboard</Button>
+              <div>
+                <h1 className="text-xl font-bold">{typedWorkshop.title}</h1>
+                <div className="flex items-center gap-2 text-sm">
+                  <Badge variant={typedWorkshop.status === 'active' ? 'default' : 'outline'}>
+                    {typedWorkshop.status === 'active' ? '🟢 En cours' : typedWorkshop.status}
+                  </Badge>
+                  {isConnected && <span className="text-emerald-500 flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"/>Live</span>}
+                </div>
+              </div>
+            </div>
+            <div className="hidden md:block flex-1 max-w-2xl">
+              <PhaseProgress currentPhase={currentPhase} size="sm" showLabels={false} />
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleDelete} className="text-red-500">🗑️</Button>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <WorkshopHeader
-          title={workshop?.title || 'Workshop'}
-          initialProblem={workshop?.initial_problem || ''}
-          currentPhase={workshop?.current_phase || 0}
-          status={workshop?.status || 'draft'}
-        />
-
-        {/* Phase Navigation */}
-        <div className="px-6 py-3 border-b border-border bg-gray-50/50 dark:bg-slate-900/50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Phase {workshop?.current_phase || 0} / 5
-            </div>
-            <div className="flex gap-2">
-              {workshop && workshop.current_phase > 1 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreviousPhase}
-                >
-                  ← Précédent
-                </Button>
-              )}
-              {isSaving && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="animate-spin">⏳</div>
-                  Sauvegarde...
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">👥 Équipe</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {typedWorkshop.agents?.map((agent) => {
+                  const personality = AGENT_PERSONALITIES[agent.personality];
+                  return (
+                    <div key={agent.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted">
+                      <span className="text-xl">{agent.avatar_emoji || personality?.icon || '🤖'}</span>
+                      <div>
+                        <p className="font-medium text-sm">{agent.display_name}</p>
+                        <p className="text-xs text-muted-foreground">{personality?.description || agent.personality}</p>
+                      </div>
+                    </div>
+                  );
+                }) || (
+                  <p className="text-muted-foreground text-sm">Aucun agent</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">📊 Phase</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{phaseConfig.icon}</span>
+                  <div><p className="font-semibold">Phase {currentPhase}</p><p className="text-sm text-muted-foreground">{phaseConfig.name}</p></div>
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">🎯 Objectif</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{typedWorkshop.config?.target_ideas_count || 20}</p>
+                <p className="text-sm text-muted-foreground">idées</p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-
-        {/* Phase Content */}
-        <div className="flex-1 overflow-y-auto">
-          {renderPhaseContent()}
+          <div className="lg:col-span-3">{renderPhase()}</div>
         </div>
       </div>
     </div>
-  );
-}
-
-// Wrapper component with SSEProvider
-export default function WorkshopDetailPage() {
-  const params = useParams();
-  const workshopId = params.id as string;
-
-  return (
-    <SSEProvider workshopId={workshopId}>
-      <WorkshopDetailContent />
-    </SSEProvider>
   );
 }

@@ -27,11 +27,15 @@ export function useAdvancePhase() {
       if (response.error) throw new Error(response.error.message);
       return response.data!;
     },
-    onSuccess: (_, { workshopId }) => {
-      queryClient.invalidateQueries({ queryKey: phaseKeys.status(workshopId) });
-      // Also refresh workshop lists/details so UI updates current_phase/status
-      queryClient.invalidateQueries({ queryKey: workshopKeys.all });
-      queryClient.invalidateQueries({ queryKey: workshopKeys.detail(workshopId) });
+    onSuccess: async (_, { workshopId }) => {
+      // Invalidate and wait for refetch to complete
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: phaseKeys.status(workshopId) }),
+        queryClient.invalidateQueries({ queryKey: workshopKeys.all }),
+        queryClient.invalidateQueries({ queryKey: workshopKeys.detail(workshopId) }),
+      ]);
+      // Force refetch to ensure fresh data
+      await queryClient.refetchQueries({ queryKey: workshopKeys.detail(workshopId) });
     },
   });
 }

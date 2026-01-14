@@ -15,6 +15,31 @@ import { Label } from '@kit/ui/label';
 import { Badge } from '@kit/ui/badge';
 import { AGENT_PERSONALITIES, type Workshop, type SSEEvent, type EmpathyMap, type HMWQuestion } from '../../_lib/types';
 import { phase1Api } from '../../_lib/api';
+import {
+  AgentAvatarIcon,
+  Spinner,
+  HeartHandshake,
+  User,
+  MessageCircle,
+  Brain,
+  Activity,
+  Heart,
+  Map,
+  HelpCircle,
+  Rocket,
+  CheckCircle2,
+  XCircle,
+  MapPin,
+  Smile,
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Lightbulb,
+  ChevronDown,
+  Edit3,
+  Trash2,
+  Plus,
+} from '../../_lib/icons';
 
 interface Phase1Props {
   workshop: Workshop;
@@ -65,6 +90,102 @@ export default function Phase1Empathy({
     'journey': false,
     'hmw': false,
   });
+
+  // Expanded sections state for viewing all items
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  
+  // Editing state
+  const [editingItem, setEditingItem] = useState<{ category: string; id: string; content: string } | null>(null);
+  const [newItemContent, setNewItemContent] = useState('');
+  const [addingToCategory, setAddingToCategory] = useState<string | null>(null);
+
+  // Toggle section expansion
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Handle editing an empathy map item
+  const handleEditItem = (category: 'says' | 'thinks' | 'does' | 'feels', id: string, newContent: string) => {
+    if (!empathyMap || !newContent.trim()) return;
+    
+    setEmpathyMap(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [category]: prev[category].map(item => 
+          item.id === id ? { ...item, content: newContent.trim() } : item
+        )
+      };
+    });
+    setEditingItem(null);
+  };
+
+  // Handle deleting an empathy map item
+  const handleDeleteItem = (category: 'says' | 'thinks' | 'does' | 'feels', id: string) => {
+    if (!empathyMap) return;
+    
+    setEmpathyMap(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [category]: prev[category].filter(item => item.id !== id)
+      };
+    });
+  };
+
+  // Handle adding a new empathy map item
+  const handleAddItem = (category: 'says' | 'thinks' | 'does' | 'feels') => {
+    if (!empathyMap || !newItemContent.trim()) return;
+    
+    const newItem = {
+      id: crypto.randomUUID(),
+      content: newItemContent.trim(),
+      agent_id: 'user',
+      created_at: new Date().toISOString(),
+    };
+    
+    setEmpathyMap(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [category]: [...prev[category], newItem]
+      };
+    });
+    setNewItemContent('');
+    setAddingToCategory(null);
+  };
+
+  // HMW Questions editing state
+  const [editingHmw, setEditingHmw] = useState<{ id: string; question: string } | null>(null);
+  const [newHmwQuestion, setNewHmwQuestion] = useState('');
+  const [isAddingHmw, setIsAddingHmw] = useState(false);
+
+  // Handle editing an HMW question
+  const handleEditHmw = (id: string, newQuestion: string) => {
+    if (!newQuestion.trim()) return;
+    setHmwQuestions(prev => 
+      prev.map(q => q.id === id ? { ...q, question: newQuestion.trim() } : q)
+    );
+    setEditingHmw(null);
+  };
+
+  // Handle deleting an HMW question
+  const handleDeleteHmw = (id: string) => {
+    setHmwQuestions(prev => prev.filter(q => q.id !== id));
+  };
+
+  // Handle adding a new HMW question
+  const handleAddHmw = () => {
+    if (!newHmwQuestion.trim()) return;
+    const newItem: HMWQuestion = {
+      id: crypto.randomUUID(),
+      question: newHmwQuestion.trim(),
+      agent_ids: ['user'],
+    };
+    setHmwQuestions(prev => [...prev, newItem]);
+    setNewHmwQuestion('');
+    setIsAddingHmw(false);
+  };
 
   // Process SSE events for real-time updates
   useEffect(() => {
@@ -289,28 +410,29 @@ export default function Phase1Empathy({
     <Card>
       <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-t-lg">
         <CardTitle className="text-xl flex items-center gap-2">
-          🎭 Phase 1 - Empathy
+          <HeartHandshake className="w-5 h-5" />
+          Phase 1 - Empathy
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
         {/* Error display */}
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400">
-            ❌ {error}
+          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            {error}
           </div>
         )}
 
-        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="empathy-map" className="gap-2">
-              Empathy Map {tabStatus['empathy-map'] && '✓'}
+              Empathy Map {tabStatus['empathy-map'] && <Check className="w-3 h-3" />}
             </TabsTrigger>
             <TabsTrigger value="journey" className="gap-2">
-              Journey {tabStatus['journey'] && '✓'}
+              Journey {tabStatus['journey'] && <Check className="w-3 h-3" />}
             </TabsTrigger>
             <TabsTrigger value="hmw" className="gap-2">
-              HMW {tabStatus['hmw'] && '✓'}
+              HMW {tabStatus['hmw'] && <Check className="w-3 h-3" />}
             </TabsTrigger>
           </TabsList>
 
@@ -319,7 +441,10 @@ export default function Phase1Empathy({
             {!tabStatus['empathy-map'] ? (
               <>
                 <div className="space-y-4">
-                  <h3 className="font-semibold">👤 Décrivez votre persona utilisateur</h3>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Décrivez votre persona utilisateur
+                  </h3>
                   
                   <div className="space-y-2">
                     <Label htmlFor="persona-desc">Description du persona *</Label>
@@ -356,48 +481,140 @@ export default function Phase1Empathy({
                 <Button
                   onClick={handleStartEmpathyMap}
                   disabled={isAnalyzing || !personaDescription.trim()}
-                  className="w-full"
+                  className="w-full gap-2"
                 >
-                  {isAnalyzing ? '⏳ Analyse en cours...' : '🚀 Lancer l\'analyse'}
+                  {isAnalyzing ? (
+                    <>
+                      <Spinner size="sm" />
+                      Analyse en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" />
+                      Lancer l'analyse
+                    </>
+                  )}
                 </Button>
               </>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">🎭 Empathy Map Complète</h3>
-                  <Badge variant="secondary">✅ Terminé</Badge>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <HeartHandshake className="w-4 h-4" />
+                    Empathy Map Complète
+                  </h3>
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Terminé
+                  </Badge>
                 </div>
 
                 {/* Empathy Map Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   {(['says', 'thinks', 'does', 'feels'] as const).map((category) => {
-                    const icons = { says: '💬', thinks: '💭', does: '🏃', feels: '❤️' };
+                    const IconMap = { says: MessageCircle, thinks: Brain, does: Activity, feels: Heart };
                     const titles = { says: 'Dit', thinks: 'Pense', does: 'Fait', feels: 'Ressent' };
+                    const IconComponent = IconMap[category];
                     const items = empathyMap?.[category] || [];
+                    const isExpanded = expandedSections[category];
+                    const displayedItems = isExpanded ? items : items.slice(0, 5);
                     
                     return (
                       <div key={category} className="p-4 rounded-lg bg-muted/50 space-y-2">
-                        <h4 className="font-medium flex items-center gap-2">
-                          {icons[category]} {titles[category].toUpperCase()} ({items.length})
-                        </h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <IconComponent className="w-4 h-4" />
+                            {titles[category].toUpperCase()} ({items.length})
+                          </h4>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAddingToCategory(addingToCategory === category ? null : category)}
+                            className="h-6 w-6 p-0"
+                            title="Ajouter un élément"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
+                        {/* Add new item form */}
+                        {addingToCategory === category && (
+                          <div className="flex gap-2 mb-2">
+                            <Input
+                              value={newItemContent}
+                              onChange={(e) => setNewItemContent(e.target.value)}
+                              placeholder="Nouveau contenu..."
+                              className="text-sm h-8"
+                              onKeyDown={(e) => e.key === 'Enter' && handleAddItem(category)}
+                            />
+                            <Button size="sm" onClick={() => handleAddItem(category)} className="h-8">
+                              <Check className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        
                         <ul className="space-y-1 text-sm">
-                          {items.slice(0, 5).map((item) => (
-                            <li key={item.id} className="flex items-start gap-2">
-                              <span>•</span>
-                              <span>{item.content}</span>
+                          {displayedItems.map((item) => (
+                            <li key={item.id} className="group flex items-start gap-2">
+                              {editingItem?.id === item.id ? (
+                                <div className="flex-1 flex gap-1">
+                                  <Input
+                                    value={editingItem.content}
+                                    onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })}
+                                    className="text-sm h-7 flex-1"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditItem(category, item.id, editingItem.content);
+                                      if (e.key === 'Escape') setEditingItem(null);
+                                    }}
+                                  />
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleEditItem(category, item.id, editingItem.content)}>
+                                    <Check className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex-1">{item.content}</span>
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                    <button
+                                      onClick={() => setEditingItem({ category, id: item.id, content: item.content })}
+                                      className="text-muted-foreground hover:text-foreground p-0.5"
+                                      title="Modifier"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteItem(category, item.id)}
+                                      className="text-muted-foreground hover:text-red-500 p-0.5"
+                                      title="Supprimer"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </>
+                              )}
                             </li>
                           ))}
-                          {items.length > 5 && (
-                            <li className="text-muted-foreground">[+{items.length - 5} autres]</li>
-                          )}
                         </ul>
+                        
+                        {items.length > 5 && (
+                          <button
+                            onClick={() => toggleSection(category)}
+                            className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"
+                          >
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            {isExpanded ? 'Réduire' : `Voir ${items.length - 5} autres`}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
                 </div>
 
-                <Button onClick={() => setActiveTab('journey')} className="w-full">
-                  Passer au Customer Journey →
+                <Button onClick={() => setActiveTab('journey')} className="w-full gap-2">
+                  Passer au Customer Journey
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             )}
@@ -407,78 +624,132 @@ export default function Phase1Empathy({
           <TabsContent value="journey" className="space-y-6 pt-4">
             {!tabStatus['journey'] ? (
               <div className="text-center py-8 space-y-4">
-                <div className="text-4xl">🗺️</div>
+                <div className="flex justify-center">
+                  <Map className="w-12 h-12 text-muted-foreground" />
+                </div>
                 <h3 className="font-semibold">Customer Journey Map</h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
                   Les agents vont créer une carte du parcours client avec les touchpoints, émotions et pain points.
                 </p>
-                <Button onClick={handleStartJourney} disabled={isAnalyzing}>
-                  {isAnalyzing ? '⏳ Génération...' : '🚀 Générer le Journey'}
+                <Button onClick={handleStartJourney} disabled={isAnalyzing} className="gap-2">
+                  {isAnalyzing ? (
+                    <>
+                      <Spinner size="sm" />
+                      Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" />
+                      Générer le Journey
+                    </>
+                  )}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">🗺️ Customer Journey ({customerJourney.length} étapes)</h3>
-                  <Badge variant="secondary">✅ Terminé</Badge>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Map className="w-4 h-4" />
+                    Customer Journey ({customerJourney.length} étapes)
+                  </h3>
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Terminé
+                  </Badge>
                 </div>
                 
                 <div className="flex gap-4 overflow-x-auto pb-4">
                   {customerJourney.length > 0 ? (
-                    customerJourney.map((stage: any, i) => (
-                      <div key={stage.id || i} className="min-w-[220px] p-4 rounded-lg bg-muted/50 space-y-3">
-                        <h4 className="font-medium">{i + 1}. {stage.name || stage.stage_name || `Étape ${i + 1}`}</h4>
-                        
-                        {stage.touchpoints && stage.touchpoints.length > 0 && (
-                          <div className="text-xs space-y-1">
-                            <p className="font-medium">🔍 Touchpoints</p>
-                            <ul className="pl-2 space-y-0.5">
-                              {stage.touchpoints.slice(0, 3).map((tp: string, j: number) => (
-                                <li key={j} className="text-muted-foreground">• {tp}</li>
-                              ))}
-                              {stage.touchpoints.length > 3 && (
-                                <li className="text-muted-foreground italic">+{stage.touchpoints.length - 3} autres</li>
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {stage.emotions && stage.emotions.length > 0 && (
-                          <div className="text-xs space-y-1">
-                            <p className="font-medium">😊 Émotions</p>
-                            <p className="text-muted-foreground">{stage.emotions.slice(0, 3).join(', ')}</p>
-                          </div>
-                        )}
-                        
-                        {stage.pain_points && stage.pain_points.length > 0 && (
-                          <div className="text-xs space-y-1">
-                            <p className="font-medium">⚠️ Pain Points</p>
-                            <ul className="pl-2 space-y-0.5">
-                              {stage.pain_points.slice(0, 2).map((pp: string, j: number) => (
-                                <li key={j} className="text-muted-foreground">• {pp}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))
+                    customerJourney.map((stage: any, i) => {
+                      const stageKey = `journey-${i}`;
+                      const isStageExpanded = expandedSections[stageKey];
+                      
+                      return (
+                        <div key={stage.id || i} className="min-w-[250px] max-w-[300px] p-4 rounded-lg bg-muted/50 space-y-3 flex-shrink-0">
+                          <h4 className="font-medium">{i + 1}. {stage.name || stage.stage_name || `Étape ${i + 1}`}</h4>
+                          
+                          {stage.touchpoints && stage.touchpoints.length > 0 && (
+                            <div className="text-xs space-y-1">
+                              <p className="font-medium flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                Touchpoints ({stage.touchpoints.length})
+                              </p>
+                              <ul className="pl-2 space-y-0.5">
+                                {(isStageExpanded ? stage.touchpoints : stage.touchpoints.slice(0, 3)).map((tp: string, j: number) => (
+                                  <li key={j} className="text-muted-foreground">• {tp}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {stage.emotions && stage.emotions.length > 0 && (
+                            <div className="text-xs space-y-1">
+                              <p className="font-medium flex items-center gap-1">
+                                <Smile className="w-3 h-3" />
+                                Émotions ({stage.emotions.length})
+                              </p>
+                              <p className="text-muted-foreground">
+                                {isStageExpanded 
+                                  ? stage.emotions.join(', ') 
+                                  : stage.emotions.slice(0, 3).join(', ') + (stage.emotions.length > 3 ? '...' : '')}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {stage.pain_points && stage.pain_points.length > 0 && (
+                            <div className="text-xs space-y-1">
+                              <p className="font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Pain Points ({stage.pain_points.length})
+                              </p>
+                              <ul className="pl-2 space-y-0.5">
+                                {(isStageExpanded ? stage.pain_points : stage.pain_points.slice(0, 2)).map((pp: string, j: number) => (
+                                  <li key={j} className="text-muted-foreground">• {pp}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Expand/Collapse button */}
+                          {((stage.touchpoints?.length > 3) || (stage.emotions?.length > 3) || (stage.pain_points?.length > 2)) && (
+                            <button
+                              onClick={() => toggleSection(stageKey)}
+                              className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
+                            >
+                              <ChevronDown className={`w-3 h-3 transition-transform ${isStageExpanded ? 'rotate-180' : ''}`} />
+                              {isStageExpanded ? 'Réduire' : 'Voir tout'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     // Fallback placeholder stages
                     ['Découverte', 'Recherche', 'Comparaison', 'Achat', 'Installation'].map((step, i) => (
                       <div key={step} className="min-w-[200px] p-4 rounded-lg bg-muted/50 space-y-2">
                         <h4 className="font-medium">{i + 1}. {step}</h4>
                         <div className="text-xs space-y-1">
-                          <p className="text-muted-foreground">🔍 Touchpoints</p>
-                          <p className="text-muted-foreground">😊 Émotions</p>
-                          <p className="text-muted-foreground">⚠️ Pain Points</p>
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            Touchpoints
+                          </p>
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Smile className="w-3 h-3" />
+                            Émotions
+                          </p>
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Pain Points
+                          </p>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
 
-                <Button onClick={() => setActiveTab('hmw')} className="w-full">
-                  Passer aux HMW Questions →
+                <Button onClick={() => setActiveTab('hmw')} className="w-full gap-2">
+                  Passer aux HMW Questions
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             )}
@@ -488,32 +759,126 @@ export default function Phase1Empathy({
           <TabsContent value="hmw" className="space-y-6 pt-4">
             {!tabStatus['hmw'] ? (
               <div className="text-center py-8 space-y-4">
-                <div className="text-4xl">❓</div>
+                <div className="flex justify-center">
+                  <HelpCircle className="w-12 h-12 text-muted-foreground" />
+                </div>
                 <h3 className="font-semibold">How Might We Questions</h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
                   Les agents vont formuler des questions "Comment pourrions-nous..." pour guider l'idéation.
                 </p>
-                <Button onClick={handleStartHMW} disabled={isAnalyzing}>
-                  {isAnalyzing ? '⏳ Génération...' : '🚀 Générer les questions'}
+                <Button onClick={handleStartHMW} disabled={isAnalyzing} className="gap-2">
+                  {isAnalyzing ? (
+                    <>
+                      <Spinner size="sm" />
+                      Génération...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" />
+                      Générer les questions
+                    </>
+                  )}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">❓ How Might We Questions</h3>
-                  <Badge variant="secondary">✅ Terminé</Badge>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    How Might We Questions ({hmwQuestions.length})
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddingHmw(!isAddingHmw)}
+                      className="gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Ajouter
+                    </Button>
+                    <Badge variant="secondary" className="gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Terminé
+                    </Badge>
+                  </div>
                 </div>
+
+                {/* Add new HMW form */}
+                {isAddingHmw && (
+                  <div className="flex gap-2 p-3 bg-muted/30 rounded-lg">
+                    <Input
+                      value={newHmwQuestion}
+                      onChange={(e) => setNewHmwQuestion(e.target.value)}
+                      placeholder="Comment pourrions-nous..."
+                      className="flex-1"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddHmw()}
+                    />
+                    <Button onClick={handleAddHmw}>
+                      <Check className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {hmwQuestions.map((q, i) => {
                     const agentId = q.agent_ids?.[0];
-                    const agent = agentId ? AGENT_PERSONALITIES[agentId] : undefined;
+                    const agent = agentId && agentId !== 'user' ? AGENT_PERSONALITIES[agentId] : undefined;
                     return (
-                      <div key={q.id} className="p-4 rounded-lg bg-muted/50">
-                        <p className="font-medium">{i + 1}. {q.question}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {agent && <span className="text-sm">{agent.icon} {agent.name}</span>}
-                        </div>
+                      <div key={q.id} className="group p-4 rounded-lg bg-muted/50">
+                        {editingHmw?.id === q.id ? (
+                          <div className="flex gap-2">
+                            <Textarea
+                              value={editingHmw.question}
+                              onChange={(e) => setEditingHmw({ ...editingHmw, question: e.target.value })}
+                              className="flex-1 min-h-[60px]"
+                              autoFocus
+                            />
+                            <div className="flex flex-col gap-1">
+                              <Button size="sm" onClick={() => handleEditHmw(q.id, editingHmw.question)}>
+                                <Check className="w-3 h-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingHmw(null)}>
+                                <XCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between">
+                              <p className="font-medium flex-1">{i + 1}. {q.question}</p>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ml-2">
+                                <button
+                                  onClick={() => setEditingHmw({ id: q.id, question: q.question })}
+                                  className="text-muted-foreground hover:text-foreground p-1"
+                                  title="Modifier"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteHmw(q.id)}
+                                  className="text-muted-foreground hover:text-red-500 p-1"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              {agent ? (
+                                <span className="text-sm flex items-center gap-1">
+                                  <AgentAvatarIcon personality={agentId} size="sm" />
+                                  {agent.name}
+                                </span>
+                              ) : agentId === 'user' ? (
+                                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  Ajouté par vous
+                                </span>
+                              ) : null}
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
                   })}
@@ -538,15 +903,15 @@ export default function Phase1Empathy({
                 return agent ? (
                   <div
                     key={agentId}
-                    className={`p-2 rounded-lg text-center text-sm ${
+                    className={`p-2 rounded-lg text-center text-sm flex items-center justify-center gap-1 ${
                       progress.status === 'working' ? 'bg-blue-100 dark:bg-blue-900 animate-pulse' :
                       progress.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900' :
                       'bg-muted'
                     }`}
                   >
-                    <span>{agent.icon}</span>
-                    <span className="ml-1">{agent.name}</span>
-                    {progress.status === 'completed' && <span className="ml-1">✓</span>}
+                    <AgentAvatarIcon personality={agentId} size="sm" />
+                    <span>{agent.name}</span>
+                    {progress.status === 'completed' && <Check className="w-3 h-3" />}
                   </div>
                 ) : null;
               })}
@@ -564,9 +929,15 @@ export default function Phase1Empathy({
               className="w-full gap-2"
             >
               {isAdvancing ? (
-                <><span className="animate-spin">⏳</span> Transition...</>
+                <>
+                  <Spinner size="sm" />
+                  Transition...
+                </>
               ) : (
-                <>Avancer vers Phase 2: Ideation 💡</>
+                <>
+                  Avancer vers Phase 2: Ideation
+                  <Lightbulb className="w-4 h-4" />
+                </>
               )}
             </Button>
           </div>

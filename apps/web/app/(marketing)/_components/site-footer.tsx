@@ -1,5 +1,4 @@
 import { Footer } from '@kit/ui/marketing';
-import { Trans } from '@kit/ui/trans';
 
 import { AppLogo } from '~/components/app-logo';
 import appConfig from '~/config/app.config';
@@ -8,44 +7,45 @@ export function SiteFooter() {
   return (
     <Footer
       logo={<AppLogo className="w-[85px] md:w-[95px]" />}
-      description={<Trans i18nKey="marketing:footerDescription" />}
-      copyright={
-        <Trans
-          i18nKey="marketing:copyright"
-          values={{
-            product: appConfig.name,
-            year: new Date().getFullYear(),
-          }}
-        />
-      }
+      description="AI-powered product design platform. Design Thinking + AI to innovate faster."
+      copyright={`© ${new Date().getFullYear()} ${appConfig.name}. All rights reserved.`}
       sections={[
         {
           heading: 'Get Started',
           links: [
             {
               href: '/auth/sign-in',
-              label: <Trans i18nKey="auth:signIn" />,
+              label: 'Sign In',
             },
             {
               href: '/auth/sign-up',
-              label: <Trans i18nKey="auth:signUp" />,
+              label: 'Sign Up',
             },
           ],
         },
         {
-          heading: <Trans i18nKey="marketing:legal" />,
+          heading: 'Product',
+          links: [
+            {
+              href: '/faq',
+              label: 'FAQ',
+            },
+          ],
+        },
+        {
+          heading: 'Legal',
           links: [
             {
               href: '/terms-of-service',
-              label: <Trans i18nKey="marketing:termsOfService" />,
+              label: 'Terms of Service',
             },
             {
               href: '/privacy-policy',
-              label: <Trans i18nKey="marketing:privacyPolicy" />,
+              label: 'Privacy Policy',
             },
             {
               href: '/cookie-policy',
-              label: <Trans i18nKey="marketing:cookiePolicy" />,
+              label: 'Cookie Policy',
             },
           ],
         },

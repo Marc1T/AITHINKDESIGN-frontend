@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Button } from '@kit/ui/button';
+import { Heart, BarChart2, Map, MessageCircle, Play, Check } from 'lucide-react';
 
 export interface Phase1EmpathyProps {
   workshopId: string;
@@ -18,7 +19,7 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">❤️</span>
+            <Heart className="w-6 h-6 text-red-500" />
             Phase 1: Empathie & Framing
           </CardTitle>
         </CardHeader>
@@ -29,15 +30,15 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
               <button
                 key={step}
                 onClick={() => setActiveStep(step)}
-                className={`px-4 py-2 font-medium transition-colors ${
+                className={`px-4 py-2 font-medium transition-colors flex items-center gap-1 ${
                   activeStep === step
                     ? 'border-b-2 border-blue-600 text-blue-600'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {step === 'empathy' && '📊 Empathy Map'}
-                {step === 'journey' && '🗺️ Customer Journey'}
-                {step === 'hmw' && '💭 HMW Questions'}
+                {step === 'empathy' && <><BarChart2 className="w-4 h-4" /> Empathy Map</>}
+                {step === 'journey' && <><Map className="w-4 h-4" /> Customer Journey</>}
+                {step === 'hmw' && <><MessageCircle className="w-4 h-4" /> HMW Questions</>}
               </button>
             ))}
           </div>
@@ -51,7 +52,7 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
                   Analyze what the user says, thinks, does, and feels
                 </p>
                 <Button className="w-full gap-2">
-                  ▶️ Run Empathy Mapping Session
+                  <Play className="w-4 h-4" /> Run Empathy Mapping Session
                 </Button>
               </div>
               {data?.empathy_map && (
@@ -102,7 +103,7 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
                   Map the customer's experience across all touchpoints
                 </p>
                 <Button className="w-full gap-2">
-                  ▶️ Generate Customer Journey
+                  <Play className="w-4 h-4" /> Generate Customer Journey
                 </Button>
               </div>
               {data?.customer_journey?.stages && (
@@ -127,14 +128,14 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
                   Reframe insights into actionable questions for ideation
                 </p>
                 <Button className="w-full gap-2">
-                  ▶️ Generate HMW Questions
+                  <Play className="w-4 h-4" /> Generate HMW Questions
                 </Button>
               </div>
               {data?.hmw_questions && (
                 <div className="space-y-2">
                   {data.hmw_questions.map((question: string, i: number) => (
-                    <div key={i} className="p-3 bg-amber-50 dark:bg-amber-950 rounded text-sm">
-                      💭 {question}
+                    <div key={i} className="p-3 bg-amber-50 dark:bg-amber-950 rounded text-sm flex items-start gap-2">
+                      <MessageCircle className="w-4 h-4 mt-0.5 shrink-0" /> {question}
                     </div>
                   ))}
                 </div>
@@ -144,7 +145,7 @@ export function Phase1Empathy({ workshopId, data, onComplete }: Phase1EmpathyPro
 
           {/* Complete Phase */}
           <Button variant="outline" className="w-full mt-4" onClick={onComplete}>
-            ✓ Marquer Phase 1 comme complète
+            <Check className="w-4 h-4 mr-1" /> Marquer Phase 1 comme complète
           </Button>
         </CardContent>
       </Card>

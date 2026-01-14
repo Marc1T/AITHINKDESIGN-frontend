@@ -37,19 +37,17 @@ const links: Record<
     path: string;
   }
 > = {
-  /*
-    FAQ: {
-      label: 'marketing:faq',
-      path: '/faq',
-    },
-     */
+  FAQ: {
+    label: 'FAQ',
+    path: '/faq',
+  },
 };
 
 export function SiteNavigation() {
   const NavItems = Object.values(links).map((item) => {
     return (
       <SiteNavigationItem key={item.path} path={item.path}>
-        <Trans i18nKey={item.label} />
+        {item.label}
       </SiteNavigationItem>
     );
   });
@@ -79,17 +77,17 @@ function MobileDropdown() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className={'w-full'}>
-        {Object.values(links).map((item) => {
-          const className = 'flex w-full h-full items-center';
+          {Object.values(links).map((item) => {
+            const className = 'flex w-full h-full items-center';
 
-          return (
-            <DropdownMenuItem key={item.path} asChild>
-              <Link className={className} href={item.path}>
-                <Trans i18nKey={item.label} />
-              </Link>
-            </DropdownMenuItem>
-          );
-        })}
+            return (
+              <DropdownMenuItem key={item.path} asChild>
+                <Link className={className} href={item.path}>
+                  {item.label}
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

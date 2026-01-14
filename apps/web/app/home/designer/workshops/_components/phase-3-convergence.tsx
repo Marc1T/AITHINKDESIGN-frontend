@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Button } from '@kit/ui/button';
+import { Target, Play, Loader2, Check } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -36,7 +37,7 @@ export function Phase3Convergence({ workshopId, data, onComplete }: Phase3Conver
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">🎯</span>
+            <Target className="w-6 h-6 text-blue-500" />
             Phase 3: Convergence & Voting
           </CardTitle>
         </CardHeader>
@@ -61,7 +62,11 @@ export function Phase3Convergence({ workshopId, data, onComplete }: Phase3Conver
             disabled={isVoting}
             className="w-full gap-2"
           >
-            {isVoting ? '⏳ Starting voting...' : '▶️ Start Voting Session'}
+            {isVoting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Starting voting...</>
+            ) : (
+              <><Play className="w-4 h-4" /> Start Voting Session</>
+            )}
           </Button>
 
           {/* Voting Results */}
@@ -87,7 +92,7 @@ export function Phase3Convergence({ workshopId, data, onComplete }: Phase3Conver
 
           {/* Complete Phase */}
           <Button variant="outline" className="w-full mt-4" onClick={onComplete}>
-            ✓ Marquer Phase 3 comme complète
+            <Check className="w-4 h-4 mr-1" /> Marquer Phase 3 comme complète
           </Button>
         </CardContent>
       </Card>

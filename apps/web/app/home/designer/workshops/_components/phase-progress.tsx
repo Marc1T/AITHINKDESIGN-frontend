@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { cn } from '@kit/ui/utils';
+import { Check } from 'lucide-react';
 import { PHASE_CONFIG } from '../_lib/types';
 
 interface PhaseProgressProps {
@@ -65,7 +66,7 @@ export function PhaseProgress({
                 )}
               >
                 {isCompleted ? (
-                  <span className={s.icon}>✓</span>
+                  <Check className={cn(s.icon, 'w-4 h-4')} />
                 ) : (
                   <span className={s.icon}>{phase.icon}</span>
                 )}

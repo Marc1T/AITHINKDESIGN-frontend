@@ -19,9 +19,23 @@ import { Input } from '@kit/ui/input';
 import { Textarea } from '@kit/ui/textarea';
 import { Badge } from '@kit/ui/badge';
 import { cn } from '@kit/ui/utils';
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Check, 
+  XCircle, 
+  ClipboardList, 
+  Lightbulb,
+  Users,
+  FileText,
+  Target,
+  Clock,
+  Rocket
+} from 'lucide-react';
 import { AgentCard } from '../_components/agent-card';
 import { AGENT_PERSONALITIES, PHASE_CONFIG } from '../_lib/types';
 import { workshopApi } from '../_lib/api';
+import { Spinner, AgentAvatarIcon, PhaseIcon } from '../_lib/icons';
 
 export default function NewWorkshopPage() {
   const router = useRouter();
@@ -111,8 +125,9 @@ export default function NewWorkshopPage() {
           <Button
             variant="ghost"
             onClick={() => step > 1 ? setStep(step - 1) : router.back()}
+            className="gap-1"
           >
-            ← Retour
+            <ArrowLeft className="w-4 h-4" /> Retour
           </Button>
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-foreground">
@@ -129,13 +144,13 @@ export default function NewWorkshopPage() {
               <button
                 onClick={() => s <= step && setStep(s)}
                 className={cn(
-                  'w-10 h-10 rounded-full font-semibold transition-all',
+                  'w-10 h-10 rounded-full font-semibold transition-all flex items-center justify-center',
                   s === step && 'bg-primary text-white shadow-lg',
                   s < step && 'bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600',
                   s > step && 'bg-gray-200 dark:bg-gray-700 text-gray-500'
                 )}
               >
-                {s < step ? '✓' : s}
+                {s < step ? <Check className="w-5 h-5" /> : s}
               </button>
               {s < 3 && (
                 <div
@@ -153,7 +168,10 @@ export default function NewWorkshopPage() {
         {error && (
           <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
             <CardContent className="pt-6">
-              <p className="text-red-600 dark:text-red-400">❌ {error}</p>
+              <p className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                <XCircle className="w-5 h-5" />
+                {error}
+              </p>
             </CardContent>
           </Card>
         )}
@@ -162,7 +180,10 @@ export default function NewWorkshopPage() {
         {step === 1 && (
           <Card className="border-primary/20">
             <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-              <CardTitle>📋 Décrivez votre problème de design</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" />
+                Décrivez votre problème de design
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div className="space-y-2">
@@ -200,8 +221,9 @@ export default function NewWorkshopPage() {
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  💡 <strong>Astuce:</strong> Soyez spécifique sur les contraintes (poids, dimensions, budget, matériaux souhaités)
+                <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
+                  <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span><strong>Astuce:</strong> Soyez spécifique sur les contraintes (poids, dimensions, budget, matériaux souhaités)</span>
                 </p>
               </div>
 
@@ -210,8 +232,9 @@ export default function NewWorkshopPage() {
                   size="lg"
                   onClick={() => setStep(2)}
                   disabled={!isStep1Valid}
+                  className="gap-1"
                 >
-                  Suivant →
+                  Suivant <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
@@ -222,7 +245,10 @@ export default function NewWorkshopPage() {
         {step === 2 && (
           <Card className="border-primary/20">
             <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
-              <CardTitle>👥 Choisissez votre équipe d'agents IA</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Choisissez votre équipe d'agents IA
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div className="flex items-center justify-between">
@@ -268,15 +294,16 @@ export default function NewWorkshopPage() {
               </div>
 
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  ← Retour
+                <Button variant="outline" onClick={() => setStep(1)} className="gap-1">
+                  <ArrowLeft className="w-4 h-4" /> Retour
                 </Button>
                 <Button
                   size="lg"
                   onClick={() => setStep(3)}
                   disabled={!isStep2Valid}
+                  className="gap-1"
                 >
-                  Suivant →
+                  Suivant <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
@@ -287,32 +314,43 @@ export default function NewWorkshopPage() {
         {step === 3 && (
           <Card className="border-primary/20">
             <CardHeader className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-t-lg">
-              <CardTitle>✅ Récapitulatif</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Check className="w-5 h-5" />
+                Récapitulatif
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {/* Title */}
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">📋 Titre</p>
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <ClipboardList className="w-4 h-4" />
+                  Titre
+                </p>
                 <p className="text-lg font-semibold">{title}</p>
               </div>
 
               {/* Problem */}
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">📝 Problème</p>
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <FileText className="w-4 h-4" />
+                  Problème
+                </p>
                 <p className="text-foreground">{problem}</p>
               </div>
 
               {/* Team */}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">
-                  👥 Équipe ({selectedAgents.size} agents)
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  Équipe ({selectedAgents.size} agents)
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {Array.from(selectedAgents).map((agentId) => {
                     const agent = AGENT_PERSONALITIES[agentId];
                     return agent ? (
-                      <Badge key={agentId} variant="secondary" className="text-sm py-1 px-3">
-                        {agent.icon} {agent.name} ({agentId})
+                      <Badge key={agentId} variant="secondary" className="text-sm py-1 px-3 flex items-center gap-1">
+                        <AgentAvatarIcon personality={agentId} size="sm" />
+                        {agent.name} ({agentId})
                       </Badge>
                     ) : null;
                   })}
@@ -321,18 +359,25 @@ export default function NewWorkshopPage() {
 
               {/* Target */}
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">🎯 Objectif</p>
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Target className="w-4 h-4" />
+                  Objectif
+                </p>
                 <p className="text-foreground">{targetIdeas} idées à générer en Phase 2</p>
               </div>
 
               {/* Duration Estimate */}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">⏱️ Durée estimée</p>
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  Durée estimée
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {PHASE_CONFIG.slice(1).map((phase) => (
                     <div key={phase.number} className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        {phase.icon} Phase {phase.number} ({phase.name})
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <PhaseIcon phase={phase.number} size="sm" />
+                        Phase {phase.number} ({phase.name})
                       </span>
                       <span>~{phase.number === 2 ? Math.ceil(targetIdeas / selectedAgents.size) * 2 : phase.number === 6 ? 0.5 : 5} min</span>
                     </div>
@@ -346,8 +391,8 @@ export default function NewWorkshopPage() {
 
               {/* Submit */}
               <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  ← Retour
+                <Button variant="outline" onClick={() => setStep(2)} className="gap-1">
+                  <ArrowLeft className="w-4 h-4" /> Retour
                 </Button>
                 <Button
                   size="lg"
@@ -357,12 +402,13 @@ export default function NewWorkshopPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="animate-spin">⏳</span>
+                      <Spinner size="sm" />
                       Création...
                     </>
                   ) : (
                     <>
-                      🚀 Démarrer
+                      <Rocket className="w-4 h-4" />
+                      Démarrer
                     </>
                   )}
                 </Button>

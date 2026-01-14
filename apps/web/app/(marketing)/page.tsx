@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { ArrowRightIcon, LayoutDashboard } from 'lucide-react';
+import { ArrowRightIcon, Lightbulb, Users, Cpu, Target, Wrench, FileText } from 'lucide-react';
 
 import {
   CtaButton,
@@ -12,7 +12,6 @@ import {
   Hero,
   Pill,
 } from '@kit/ui/marketing';
-import { Trans } from '@kit/ui/trans';
 
 import { withI18n } from '~/lib/i18n/with-i18n';
 
@@ -22,20 +21,20 @@ function Home() {
       <div className={'container mx-auto'}>
         <Hero
           pill={
-            <Pill label={'New'}>
-              <span>The leading SaaS Starter Kit for ambitious developers</span>
+            <Pill label={'AI-Powered'}>
+              <span>Design Thinking meets Artificial Intelligence</span>
             </Pill>
           }
           title={
             <>
-              <span>The ultimate SaaS Starter</span>
-              <span>for your next project</span>
+              <span>Transform Ideas into</span>
+              <span>Innovative Products</span>
             </>
           }
           subtitle={
             <span>
-              Build and Ship a SaaS faster than ever before with the next-gen
-              SaaS Starter Kit. Ship your SaaS in days, not months.
+              AITHINKDESIGN combines AI-powered multi-agent collaboration with 
+              Design Thinking methodology to accelerate your product design process.
             </span>
           }
           cta={<MainCallToActionButton />}
@@ -48,7 +47,7 @@ function Home() {
               width={3558}
               height={2222}
               src={`/images/dashboard.webp`}
-              alt={`App Image`}
+              alt={`AITHINKDESIGN Workshop`}
             />
           }
         />
@@ -62,47 +61,52 @@ function Home() {
             heading={
               <>
                 <b className="font-semibold dark:text-white">
-                  The ultimate SaaS Starter Kit
+                  AI-Augmented Design Thinking
                 </b>
                 .{' '}
                 <span className="text-muted-foreground font-normal">
-                  Unleash your creativity and build your SaaS faster than ever
-                  with Makerkit.
+                  6 phases powered by multi-agent AI to take your ideas from concept to specification.
                 </span>
               </>
             }
             icon={
               <FeatureShowcaseIconContainer>
-                <LayoutDashboard className="h-5" />
-                <span>All-in-one solution</span>
+                <Lightbulb className="h-5" />
+                <span>Complete Design Workflow</span>
               </FeatureShowcaseIconContainer>
             }
           >
             <FeatureGrid>
               <FeatureCard
                 className={'relative col-span-2 overflow-hidden'}
-                label={'Beautiful Dashboard'}
-                description={`Makerkit provides a beautiful dashboard to manage your SaaS business.`}
+                label={'Multi-Agent Ideation'}
+                description={`AI agents with unique personalities collaborate to generate diverse and creative ideas using techniques like SCAMPER, Random Word, and Worst Idea.`}
               />
 
               <FeatureCard
                 className={
                   'relative col-span-2 w-full overflow-hidden lg:col-span-1'
                 }
-                label={'Authentication'}
-                description={`Makerkit provides a variety of providers to allow your users to sign in.`}
+                label={'Empathy & Framing'}
+                description={`Build empathy maps, customer journeys, and How Might We questions to deeply understand user needs.`}
               />
 
               <FeatureCard
                 className={'relative col-span-2 overflow-hidden lg:col-span-1'}
-                label={'Multi Tenancy'}
-                description={`Multi tenant memberships for your SaaS business.`}
+                label={'Smart Convergence'}
+                description={`Dot voting, Now-How-Wow matrix, and Impact/Effort analysis to select the best ideas.`}
               />
 
               <FeatureCard
-                className={'relative col-span-2 overflow-hidden'}
-                label={'Billing'}
-                description={`Makerkit supports multiple payment gateways to charge your customers.`}
+                className={'relative col-span-2 overflow-hidden lg:col-span-1'}
+                label={'TRIZ Innovation'}
+                description={`Apply TRIZ methodology to overcome contradictions and enhance your concepts with inventive principles.`}
+              />
+
+              <FeatureCard
+                className={'relative col-span-2 overflow-hidden lg:col-span-1'}
+                label={'Automatic Specifications'}
+                description={`Generate comprehensive product specifications (Cahier des Charges) automatically from your refined ideas.`}
               />
             </FeatureGrid>
           </FeatureShowcase>
@@ -120,9 +124,7 @@ function MainCallToActionButton() {
       <CtaButton>
         <Link href={'/auth/sign-up'}>
           <span className={'flex items-center space-x-0.5'}>
-            <span>
-              <Trans i18nKey={'common:getStarted'} />
-            </span>
+            <span>Start Designing</span>
 
             <ArrowRightIcon
               className={
@@ -135,8 +137,8 @@ function MainCallToActionButton() {
       </CtaButton>
 
       <CtaButton variant={'link'}>
-        <Link href={'/contact'}>
-          <Trans i18nKey={'common:contactUs'} />
+        <Link href={'/auth/sign-in'}>
+          Sign In
         </Link>
       </CtaButton>
     </div>

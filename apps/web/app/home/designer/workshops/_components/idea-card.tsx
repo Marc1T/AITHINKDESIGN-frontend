@@ -10,7 +10,9 @@ import { cn } from '@kit/ui/utils';
 import { Button } from '@kit/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Badge } from '@kit/ui/badge';
+import { Trash2, Pencil, Check, Lightbulb, AlertTriangle, ArrowRight, Shuffle, RefreshCw } from 'lucide-react';
 import { AgentAvatar } from './agent-card';
+import { RankBadge } from '../_lib/icons';
 import { AGENT_PERSONALITIES, type Idea } from '../_lib/types';
 
 interface IdeaCardProps {
@@ -52,8 +54,6 @@ export function IdeaCard({
     setIsEditing(false);
   };
 
-  const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
-
   return (
     <Card
       className={cn(
@@ -67,11 +67,7 @@ export function IdeaCard({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            {rank && (
-              <span className="text-lg font-bold text-muted-foreground">
-                {rankEmoji || `#${rank}`}
-              </span>
-            )}
+            {rank && <RankBadge rank={rank} />}
             {!isEditing ? (
               <CardTitle className="text-lg">{idea.title}</CardTitle>
             ) : (
@@ -115,6 +111,48 @@ export function IdeaCard({
           />
         )}
 
+        {/* Technique-specific enrichment */}
+        {expanded && idea.technique === 'worst_idea' && idea.worst_idea_original && (
+          <div className="p-3 rounded-lg bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">Pire idée originale</p>
+                <p className="text-sm text-red-700 dark:text-red-300 italic">"{idea.worst_idea_original}"</p>
+              </div>
+            </div>
+            {idea.inversion_insight && (
+              <div className="flex items-start gap-2 pt-2 border-t border-red-200 dark:border-red-700">
+                <ArrowRight className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Insight d'inversion</p>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300">{idea.inversion_insight}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {expanded && idea.technique === 'scamper' && idea.scamper_type && (
+          <div className="p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-blue-500" />
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Principe SCAMPER</p>
+              <Badge variant="secondary" className="text-xs">{idea.scamper_type}</Badge>
+            </div>
+          </div>
+        )}
+
+        {expanded && idea.technique === 'random_word' && idea.random_word && (
+          <div className="p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center gap-2">
+              <Shuffle className="w-4 h-4 text-purple-500" />
+              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase">Mot déclencheur</p>
+              <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900">{idea.random_word}</Badge>
+            </div>
+          </div>
+        )}
+
         {/* Meta info */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -150,7 +188,7 @@ export function IdeaCard({
                     size="sm"
                     onClick={() => setIsEditing(true)}
                   >
-                    ✏️
+                    <Pencil className="w-4 h-4" />
                   </Button>
                 )}
                 {onDelete && (
@@ -160,7 +198,7 @@ export function IdeaCard({
                     onClick={onDelete}
                     className="text-red-500 hover:text-red-600"
                   >
-                    🗑️
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </>
@@ -190,7 +228,7 @@ export function IdeaCard({
                   : 'border-gray-300 hover:border-primary'
               )}
             >
-              {isSelected && '✓'}
+              {isSelected && <Check className="w-3 h-3" />}
             </div>
             <span className="text-sm text-muted-foreground">
               {isSelected ? 'Sélectionnée' : 'Sélectionner'}
@@ -225,11 +263,7 @@ export function IdeaCardCompact({
         className
       )}
     >
-      {rank && (
-        <span className="text-lg font-bold text-muted-foreground w-8">
-          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
-        </span>
-      )}
+      {rank && <RankBadge rank={rank} />}
       <AgentAvatar agentId={idea.agent_id} size="sm" />
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{idea.title}</p>

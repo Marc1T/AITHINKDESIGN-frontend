@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { PhaseIcon } from '../_lib/icons';
 
 export interface WorkshopHeaderProps {
   title: string;
@@ -11,12 +12,12 @@ export interface WorkshopHeaderProps {
 
 export function WorkshopHeader({ title, initialProblem, currentPhase, status }: WorkshopHeaderProps) {
   const phases = [
-    { name: 'Setup', icon: '⚙️' },
-    { name: 'Empathy', icon: '❤️' },
-    { name: 'Ideation', icon: '💡' },
-    { name: 'Convergence', icon: '🎯' },
-    { name: 'TRIZ', icon: '🔧' },
-    { name: 'Selection', icon: '✨' },
+    { name: 'Setup', phase: 0 },
+    { name: 'Empathy', phase: 1 },
+    { name: 'Ideation', phase: 2 },
+    { name: 'Convergence', phase: 3 },
+    { name: 'TRIZ', phase: 4 },
+    { name: 'Selection', phase: 5 },
   ];
 
   return (
@@ -37,7 +38,7 @@ export function WorkshopHeader({ title, initialProblem, currentPhase, status }: 
                 : 'bg-blue-500/50 text-blue-100'
             }`}
           >
-            <span className="text-lg">{phase.icon}</span>
+            <PhaseIcon phase={phase.phase} className="w-5 h-5" />
             <span className="text-sm font-medium">{phase.name}</span>
           </div>
         ))}

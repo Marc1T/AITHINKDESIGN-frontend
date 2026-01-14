@@ -34,20 +34,41 @@ export async function PATCH(
   return proxyRequest(request, params.path, 'PATCH');
 }
 
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }  // Changed to Promise
+) {
+  const params = await context.params;  // Await params
+  return proxyRequest(request, params.path, 'DELETE');
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> }  // Changed to Promise
+) {
+  const params = await context.params;  // Await params
+  return proxyRequest(request, params.path, 'PUT');
+}
+
 async function proxyRequest(
   request: NextRequest,
   pathSegments: string[],
   method: string
 ) {
   try {
-    // Get JWT token from Supabase session (preferred)
+    // Get JWT token from multiple sources (in priority order):
+    // 1. Query parameter 'token' (for SSE - EventSource doesn't support headers)
+    // 2. Supabase session
+    // 3. Authorization header (for dev/testing)
+    
+    const tokenFromQuery = request.nextUrl.searchParams.get('token');
+    
     const supabase = getSupabaseServerClient();
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Fallback: accept incoming Authorization header (useful for dev/testing)
     const incomingAuth = request.headers.get('authorization') || request.headers.get('Authorization');
 
-    const jwtToken = session?.access_token || (incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, '') : undefined);
+    const jwtToken = tokenFromQuery || session?.access_token || (incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, '') : undefined);
 
     if (!jwtToken) {
       return NextResponse.json(
@@ -61,7 +82,7 @@ async function proxyRequest(
     const queryString = request.nextUrl.search; // Includes the '?' if present
     const backendUrl = `${BACKEND_URL}/${path}${queryString}`;
 
-    console.log(`🔄 Proxying ${method} request to: ${backendUrl}`);
+    console.log(`🔄 Proxying ${method} request to: ${backendUrl.replace(jwtToken, '***')}`);
 
     // Prepare request options
     const options: RequestInit = {
@@ -71,8 +92,8 @@ async function proxyRequest(
       },
     };
 
-    // Handle request body for POST/PATCH
-    if (method === 'POST' || method === 'PATCH') {
+    // Handle request body for POST/PATCH/PUT (not DELETE or GET)
+    if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
       const contentType = request.headers.get('content-type');
       
       if (contentType?.includes('multipart/form-data')) {
@@ -156,6 +177,11 @@ async function proxyRequest(
           'Content-Disposition': backendResponse.headers.get('content-disposition') || 'attachment',
         },
       });
+    }
+
+    // Handle 204 No Content responses (e.g., DELETE success)
+    if (backendResponse.status === 204) {
+      return new NextResponse(null, { status: 204 });
     }
 
     // Handle JSON responses

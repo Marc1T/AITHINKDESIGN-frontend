@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@kit/ui/card';
 import { Button } from '@kit/ui/button';
+import { Lightbulb, Play, Loader2, Check } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -37,7 +38,7 @@ export function Phase2Ideation({ workshopId, ideas = [], onComplete }: Phase2Ide
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">💡</span>
+            <Lightbulb className="w-6 h-6 text-yellow-500" />
             Phase 2: Idéation Créative
           </CardTitle>
         </CardHeader>
@@ -78,7 +79,11 @@ export function Phase2Ideation({ workshopId, ideas = [], onComplete }: Phase2Ide
             disabled={isGenerating}
             className="w-full gap-2"
           >
-            {isGenerating ? '⏳ Generating ideas...' : '▶️ Generate Ideas'}
+            {isGenerating ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Generating ideas...</>
+            ) : (
+              <><Play className="w-4 h-4" /> Generate Ideas</>
+            )}
           </Button>
 
           {/* Ideas List */}
@@ -106,7 +111,7 @@ export function Phase2Ideation({ workshopId, ideas = [], onComplete }: Phase2Ide
 
           {/* Complete Phase */}
           <Button variant="outline" className="w-full mt-4" onClick={onComplete}>
-            ✓ Marquer Phase 2 comme complète
+            <Check className="w-4 h-4 mr-1" /> Marquer Phase 2 comme complète
           </Button>
         </CardContent>
       </Card>

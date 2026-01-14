@@ -198,24 +198,24 @@ export const phase3Api = {
     workshopId: string,
     method: 'dot_voting' | 'now_how_wow' | 'impact_effort'
   ) =>
-    request(`/workshops/${workshopId}/phase3/vote?vote_type=${method}`, {
+    request(`/workshops/${workshopId}/votes?vote_type=${method}`, {
       method: 'POST',
     }),
 
   // User vote
   userVote: (workshopId: string, ideaId: string, dots: number) =>
-    request(`/workshops/${workshopId}/phase3/vote/user`, {
+    request(`/workshops/${workshopId}/votes/user`, {
       method: 'POST',
       body: JSON.stringify({ idea_id: ideaId, dots }),
     }),
 
-  // Get votes
+  // Get votes summary (includes total votes and top ideas)
   getVotes: (workshopId: string) =>
-    request(`/workshops/${workshopId}/phase3/votes`),
+    request(`/workshops/${workshopId}/votes/summary`),
 
-  // Get voting results
+  // Get voting results (alias)
   getResults: (workshopId: string) =>
-    request(`/workshops/${workshopId}/phase3/results`),
+    request(`/workshops/${workshopId}/votes/summary`),
 
   // Select top ideas for next phase
   selectTop: (workshopId: string, ideaIds: string[], count?: number) =>
@@ -305,9 +305,15 @@ export const phase5Api = {
       body: JSON.stringify({ idea_id: ideaId, justification }),
     }),
 
-  // Generate cahier de charge
+  // Generate cahier de charge (legacy)
   generateCahier: (workshopId: string) =>
     request(`/workshops/${workshopId}/phase5/generate-cahier`, {
+      method: 'POST',
+    }),
+
+  // Generate workshop report
+  generateReport: (workshopId: string) =>
+    request(`/workshops/${workshopId}/phase5/generate-report`, {
       method: 'POST',
     }),
 
@@ -315,7 +321,7 @@ export const phase5Api = {
   getSummary: (workshopId: string) =>
     request(`/workshops/${workshopId}/phase5/summary`),
 
-  // Download cahier de charge PDF
+  // Download cahier de charge PDF (legacy)
   downloadCahierCharge: async (workshopId: string) => {
     try {
       const response = await fetch(`${API_BASE}/workshops/${workshopId}/phase5/cahier/pdf`);
@@ -329,8 +335,28 @@ export const phase5Api = {
     }
   },
 
-  // Download PDF URL
+  // Download workshop report PDF
+  downloadReport: async (workshopId: string) => {
+    try {
+      // The proxy automatically handles authentication
+      const response = await fetch(`${API_BASE}/workshops/${workshopId}/phase5/report/pdf`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        return { error: { message: errorData?.detail?.message || 'Download failed' }, status: response.status };
+      }
+      const data = await response.blob();
+      return { data, status: response.status };
+    } catch (err) {
+      console.error('Download error:', err);
+      return { error: { message: 'Network error' }, status: 500 };
+    }
+  },
+
+  // Download PDF URL (legacy)
   downloadPdf: (workshopId: string) => `${API_BASE}/workshops/${workshopId}/phase5/cahier/pdf`,
+
+  // Download Report PDF URL
+  downloadReportPdf: (workshopId: string) => `${API_BASE}/workshops/${workshopId}/phase5/report/pdf`,
 
   // Complete phase 5
   complete: (workshopId: string) =>
@@ -368,8 +394,16 @@ const SSE_EVENT_TYPES = [
   'connected',
 ] as const;
 
-export function createSSEStream(workshopId: string, onEvent: (event: any) => void) {
-  const eventSource = new EventSource(`${API_BASE}/workshops/${workshopId}/stream`);
+export function createSSEStream(workshopId: string, onEvent: (event: any) => void, token?: string) {
+  // Build URL with token if provided (needed for SSE as EventSource doesn't support headers)
+  let streamUrl = `${API_BASE}/workshops/${workshopId}/stream`;
+  if (token) {
+    streamUrl += `?token=${encodeURIComponent(token)}`;
+  }
+  
+  console.log('🔌 Connecting to SSE stream:', streamUrl.replace(token || '', '***'));
+  
+  const eventSource = new EventSource(streamUrl);
 
   // Listen for named events
   SSE_EVENT_TYPES.forEach((eventType) => {

@@ -7,12 +7,16 @@
 // Agent Types
 // =============================================================================
 
+export type AgentPersonalityId = 'creative' | 'pragmatic' | 'technical' | 'empathetic' | 'critical' | 'facilitator';
+
 export interface AgentPersonality {
   id: string;
   name: string;
-  icon: string;
+  icon: AgentPersonalityId; // Reference to icon key in icons.tsx
   description: string;
   color: string;
+  colorClass: string;
+  bgClass: string;
   strengths: string[];
 }
 
@@ -20,49 +24,61 @@ export const AGENT_PERSONALITIES: Record<string, AgentPersonality> = {
   creative: {
     id: 'creative',
     name: 'Marie',
-    icon: '👩‍🎨',
+    icon: 'creative',
     description: 'Idées innovantes et créatives',
     color: 'rgb(236, 72, 153)', // pink-500
+    colorClass: 'text-pink-500',
+    bgClass: 'bg-pink-100 dark:bg-pink-900/30',
     strengths: ['Innovation', 'Originalité', 'Design'],
   },
   pragmatic: {
     id: 'pragmatic',
     name: 'Thomas',
-    icon: '👨‍💼',
+    icon: 'pragmatic',
     description: 'Faisabilité pratique',
     color: 'rgb(59, 130, 246)', // blue-500
+    colorClass: 'text-blue-500',
+    bgClass: 'bg-blue-100 dark:bg-blue-900/30',
     strengths: ['Réalisme', 'Business', 'ROI'],
   },
   technical: {
     id: 'technical',
     name: 'Alex',
-    icon: '👨‍🔧',
+    icon: 'technical',
     description: 'Ingénierie technique',
     color: 'rgb(16, 185, 129)', // emerald-500
+    colorClass: 'text-emerald-500',
+    bgClass: 'bg-emerald-100 dark:bg-emerald-900/30',
     strengths: ['Technique', 'Faisabilité', 'Qualité'],
   },
   empathetic: {
     id: 'empathetic',
     name: 'Sophie',
-    icon: '👩‍⚕️',
+    icon: 'empathetic',
     description: "Comprend l'utilisateur",
     color: 'rgb(245, 158, 11)', // amber-500
+    colorClass: 'text-amber-500',
+    bgClass: 'bg-amber-100 dark:bg-amber-900/30',
     strengths: ['UX', 'Empathie', 'Besoins'],
   },
   critical: {
     id: 'critical',
     name: 'Pierre',
-    icon: '🔍',
+    icon: 'critical',
     description: 'Analyse les risques',
     color: 'rgb(239, 68, 68)', // red-500
+    colorClass: 'text-red-500',
+    bgClass: 'bg-red-100 dark:bg-red-900/30',
     strengths: ['Analyse', 'Risques', 'Qualité'],
   },
   facilitator: {
     id: 'facilitator',
     name: 'Julie',
-    icon: '🎯',
+    icon: 'facilitator',
     description: 'Organise le workshop',
     color: 'rgb(139, 92, 246)', // violet-500
+    colorClass: 'text-violet-500',
+    bgClass: 'bg-violet-100 dark:bg-violet-900/30',
     strengths: ['Organisation', 'Synthèse', 'Facilitation'],
   },
 };
@@ -201,6 +217,15 @@ export interface Idea {
   // TRIZ enrichment
   triz_enrichment?: string;
   triz_principles?: string[];
+  // Worst Idea technique specifics
+  worst_idea_original?: string;
+  inversion_insight?: string;
+  // SCAMPER specifics
+  scamper_type?: string;
+  // Random Word specifics
+  random_word?: string;
+  // General metadata
+  metadata?: Record<string, any>;
 }
 
 // =============================================================================

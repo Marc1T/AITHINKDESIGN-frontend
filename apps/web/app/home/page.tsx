@@ -1,15 +1,6 @@
-import { PageBody, PageHeader } from '@kit/ui/page';
-
-import { DashboardDemo } from '~/home/_components/dashboard-demo';
+import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-  return (
-    <>
-      <PageHeader description={'Your SaaS at a glance'} />
-
-      <PageBody>
-        <DashboardDemo />
-      </PageBody>
-    </>
-  );
+  // Rediriger vers la page d'accueil designer
+  redirect('/home/designer');
 }

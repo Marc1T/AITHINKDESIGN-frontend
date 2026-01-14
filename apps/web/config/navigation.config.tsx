@@ -1,4 +1,4 @@
-import { Home, User } from 'lucide-react';
+import { Home, User, Lightbulb, FolderKanban, Cpu } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -16,6 +16,21 @@ const routes = [
         path: pathsConfig.app.home,
         Icon: <Home className={iconClasses} />,
         end: true,
+      },
+      {
+        label: 'Workshops',
+        path: '/home/designer/workshops',
+        Icon: <FolderKanban className={iconClasses} />,
+      },
+      {
+        label: 'Nouveau Design',
+        path: '/home/designer/workshops/new',
+        Icon: <Lightbulb className={iconClasses} />,
+      },
+      {
+        label: 'Prototypage',
+        path: '/home/designer/prototype',
+        Icon: <Cpu className={iconClasses} />,
       },
     ],
   },

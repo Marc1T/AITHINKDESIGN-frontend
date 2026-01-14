@@ -7,7 +7,9 @@
 
 import React from 'react';
 import { cn } from '@kit/ui/utils';
+import { Check, X } from 'lucide-react';
 import { AGENT_PERSONALITIES, type AgentPersonality } from '../_lib/types';
+import { AgentAvatarIcon } from '../_lib/icons';
 
 interface AgentCardProps {
   agentId: string;
@@ -58,8 +60,8 @@ export function AgentCard({
   const statusIndicator = {
     idle: null,
     working: <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping" />,
-    completed: <span className="absolute -top-1 -right-1 text-emerald-500">✓</span>,
-    error: <span className="absolute -top-1 -right-1 text-red-500">✗</span>,
+    completed: <span className="absolute -top-1 -right-1 text-emerald-500"><Check className="w-4 h-4" /></span>,
+    error: <span className="absolute -top-1 -right-1 text-red-500"><X className="w-4 h-4" /></span>,
   };
 
   return (
@@ -117,7 +119,7 @@ export function AgentCard({
               isSelected ? 'bg-primary border-primary text-white' : 'border-gray-300'
             )}
           >
-            {isSelected && <span className="text-xs">✓</span>}
+            {isSelected && <Check className="w-3 h-3" />}
           </div>
         </div>
       )}

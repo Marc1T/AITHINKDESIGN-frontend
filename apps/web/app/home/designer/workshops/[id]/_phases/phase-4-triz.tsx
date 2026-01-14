@@ -13,7 +13,19 @@ import { cn } from '@kit/ui/utils';
 import { AGENT_PERSONALITIES, type Workshop, type SSEEvent, type Idea, type TRIZAnalysis } from '../../_lib/types';
 import { phase3Api, phase4Api } from '../../_lib/api';
 import { IdeaCardCompact } from '../../_components/idea-card';
-import { AgentAvatar } from '../../_components/agent-card';
+import { 
+  Spinner,
+  Wrench, 
+  XCircle, 
+  ClipboardList, 
+  Search, 
+  Check, 
+  Clock,
+  Zap,
+  Lightbulb,
+  FileText,
+  Trophy
+} from '../../_lib/icons';
 
 interface Phase4Props {
   workshop: Workshop;
@@ -33,6 +45,7 @@ export default function Phase4TRIZ({
   refetch,
 }: Phase4Props) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStarted, setAnalysisStarted] = useState(false);
   const [selectedIdeas, setSelectedIdeas] = useState<Idea[]>([]);
   const [trizResults, setTrizResults] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
@@ -78,14 +91,50 @@ export default function Phase4TRIZ({
     }
   };
 
+  // Load results after phase complete event (with small delay to ensure DB is updated)
+  const loadResultsAfterComplete = async () => {
+    console.log('🔄 Loading TRIZ results after completion...');
+    // Small delay to ensure backend has saved results
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    try {
+      const result = await phase4Api.getResults(workshopId);
+      if (result.data && result.data.analyses) {
+        console.log('📊 TRIZ results loaded:', result.data);
+        setTrizResults(result.data.analyses);
+        setPhase('results');
+      } else {
+        // Retry once more after another delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const retryResult = await phase4Api.getResults(workshopId);
+        if (retryResult.data && retryResult.data.analyses) {
+          console.log('📊 TRIZ results loaded (retry):', retryResult.data);
+          setTrizResults(retryResult.data.analyses);
+          setPhase('results');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load results after complete:', err);
+    }
+  };
+
   // Process SSE events
   useEffect(() => {
     if (sseEvents.length <= processedEventCount) return;
     
+    // If analysis hasn't started yet, just update the counter and ignore events
+    if (!analysisStarted) {
+      setProcessedEventCount(sseEvents.length);
+      return;
+    }
+    
+    // Only process TRIZ-related events
+    const trizEvents = ['phase_started', 'triz_started', 'triz_contradiction', 'triz_principle', 'triz_analysis_complete', 'phase_complete', 'error'];
+    
     // Process all new events
     for (let i = processedEventCount; i < sseEvents.length; i++) {
       const event = sseEvents[i];
-      if (!event) continue;
+      if (!event || !trizEvents.includes(event.type)) continue;
       
       console.log('📡 Phase 4 SSE event:', event.type, event);
 
@@ -106,19 +155,31 @@ export default function Phase4TRIZ({
           break;
         case 'triz_analysis_complete':
           if (event.idea_id) {
-            setIdeaProgress((prev) => ({ ...prev, [event.idea_id!]: 'completed' }));
+            setIdeaProgress((prev) => {
+              const updated = { ...prev, [event.idea_id!]: 'completed' };
+              // Check if all ideas are completed
+              const allCompleted = Object.values(updated).every(s => s === 'completed');
+              if (allCompleted && Object.keys(updated).length > 0) {
+                console.log('🎯 All ideas analyzed, triggering results load...');
+                // Schedule results load
+                setTimeout(() => loadResultsAfterComplete(), 1000);
+              }
+              return updated;
+            });
           }
           break;
         case 'phase_complete':
-          console.log('✅ Phase 4 complete, loading results...');
+          console.log('✅ Phase 4 complete event received, loading results...');
           setPhaseCompleteReceived(true);
           setIsAnalyzing(false);
+          // Immediately load results
+          loadResultsAfterComplete();
           break;
       }
     }
     
     setProcessedEventCount(sseEvents.length);
-  }, [sseEvents, processedEventCount]);
+  }, [sseEvents, processedEventCount, analysisStarted]);
 
   // Load results when phase complete
   useEffect(() => {
@@ -127,10 +188,30 @@ export default function Phase4TRIZ({
     }
   }, [phaseCompleteReceived, phase]);
 
+  // Fallback: Check if all ideas are analyzed and load results
+  useEffect(() => {
+    if (phase !== 'analyzing' || !analysisStarted) return;
+    
+    const completedCount = Object.values(ideaProgress).filter(s => s === 'completed').length;
+    const totalCount = Object.keys(ideaProgress).length;
+    
+    if (totalCount > 0 && completedCount === totalCount) {
+      console.log(`🎯 Fallback: All ${completedCount} ideas completed, loading results in 2s...`);
+      const timer = setTimeout(() => {
+        if (phase === 'analyzing') {
+          loadResultsAfterComplete();
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [ideaProgress, phase, analysisStarted]);
+
   const handleStartAnalysis = async () => {
+    setAnalysisStarted(true);
     setIsAnalyzing(true);
     setError(null);
     setPhase('analyzing');
+    setProcessedEventCount(sseEvents.length); // Reset to ignore previous events
 
     // Initialize idea progress
     const initialProgress: Record<string, string> = {};
@@ -172,13 +253,15 @@ export default function Phase4TRIZ({
     <Card>
       <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-lg">
         <CardTitle className="text-xl flex items-center gap-2">
-          🔧 Phase 4 - Analyse TRIZ
+          <Wrench className="w-5 h-5" />
+          Phase 4 - Analyse TRIZ
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 rounded-lg text-red-600">
-            ❌ {error}
+          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 rounded-lg text-red-600 flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            {error}
           </div>
         )}
 
@@ -186,7 +269,10 @@ export default function Phase4TRIZ({
         {phase === 'review' && (
           <>
             <div className="space-y-4">
-              <h3 className="font-semibold">📋 Idées Sélectionnées</h3>
+              <h3 className="font-semibold flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" />
+                Idées Sélectionnées
+              </h3>
               <p className="text-muted-foreground">
                 Ces {selectedIdeas.length} idées vont être analysées avec la méthode TRIZ
               </p>
@@ -202,7 +288,10 @@ export default function Phase4TRIZ({
             </div>
 
             <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-              <h4 className="font-medium">🔧 Qu'est-ce que TRIZ ?</h4>
+              <h4 className="font-medium flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Qu'est-ce que TRIZ ?
+              </h4>
               <p className="text-sm text-muted-foreground">
                 TRIZ (Théorie de Résolution de Problèmes Inventifs) identifie les contradictions 
                 techniques et suggère des principes d'innovation pour les résoudre. L'analyse 
@@ -211,7 +300,17 @@ export default function Phase4TRIZ({
             </div>
 
             <Button size="lg" onClick={handleStartAnalysis} disabled={isAnalyzing} className="w-full gap-2">
-              {isAnalyzing ? '⏳ Démarrage...' : '🔬 Lancer l\'Analyse TRIZ'}
+              {isAnalyzing ? (
+                <>
+                  <Spinner size="sm" />
+                  Démarrage...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Lancer l'Analyse TRIZ
+                </>
+              )}
             </Button>
           </>
         )}
@@ -220,7 +319,10 @@ export default function Phase4TRIZ({
         {phase === 'analyzing' && (
           <>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">🔬 Analyse en Cours...</h3>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                Analyse en Cours...
+              </h3>
               <Badge variant="secondary">
                 {Object.values(ideaProgress).filter((s) => s === 'completed').length}/
                 {selectedIdeas.length}
@@ -241,15 +343,25 @@ export default function Phase4TRIZ({
                       'bg-muted'
                     )}
                   >
-                    <div className="text-2xl">
-                      {status === 'completed' ? '✅' : status === 'analyzing' ? '🔍' : '⏳'}
+                    <div className="text-2xl flex items-center justify-center">
+                      {status === 'completed' ? (
+                        <Check className="w-6 h-6 text-emerald-600" />
+                      ) : status === 'analyzing' ? (
+                        <Search className="w-6 h-6 text-purple-600 animate-pulse" />
+                      ) : (
+                        <Clock className="w-6 h-6 text-muted-foreground" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{idea.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {status === 'completed' ? '✓ Analyse terminée' : 
-                         status === 'analyzing' ? 'Analyse TRIZ en cours...' : 
-                         'En attente'}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        {status === 'completed' ? (
+                          <><Check className="w-3 h-3" /> Analyse terminée</>
+                        ) : status === 'analyzing' ? (
+                          'Analyse TRIZ en cours...'
+                        ) : (
+                          'En attente'
+                        )}
                       </p>
                     </div>
                   </div>
@@ -258,7 +370,10 @@ export default function Phase4TRIZ({
             </div>
 
             <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-              <p className="font-medium">🔧 Analyse TRIZ en cours</p>
+              <p className="font-medium flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Analyse TRIZ en cours
+              </p>
               <p className="text-sm text-muted-foreground">
                 Identification des contradictions techniques et application des principes TRIZ...
               </p>
@@ -270,8 +385,14 @@ export default function Phase4TRIZ({
         {phase === 'results' && Object.keys(trizResults).length > 0 && (
           <>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">🔧 Analyse TRIZ Terminée</h3>
-              <Badge>✅ {Object.keys(trizResults).length} idées analysées</Badge>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Analyse TRIZ Terminée
+              </h3>
+              <Badge className="flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                {Object.keys(trizResults).length} idées analysées
+              </Badge>
             </div>
 
             {/* Tabs for each idea */}
@@ -301,7 +422,10 @@ export default function Phase4TRIZ({
 
                 {/* Contradictions */}
                 <div className="p-4 rounded-lg border bg-card">
-                  <h4 className="font-medium mb-2">⚡ Contradictions Identifiées ({currentAnalysis.contradictions?.length || 0})</h4>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    Contradictions Identifiées ({currentAnalysis.contradictions?.length || 0})
+                  </h4>
                   <div className="space-y-2">
                     {currentAnalysis.contradictions?.length > 0 ? (
                       currentAnalysis.contradictions.map((c: any, i: number) => (
@@ -320,7 +444,10 @@ export default function Phase4TRIZ({
 
                 {/* TRIZ Principles */}
                 <div className="p-4 rounded-lg border bg-card">
-                  <h4 className="font-medium mb-2">💡 Principes TRIZ Suggérés</h4>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-amber-500" />
+                    Principes TRIZ Suggérés
+                  </h4>
                   <div className="flex flex-wrap gap-2">
                     {currentAnalysis.suggested_principles?.length > 0 ? (
                       currentAnalysis.suggested_principles.map((p: number, i: number) => (
@@ -336,7 +463,10 @@ export default function Phase4TRIZ({
 
                 {/* Enriched Brief */}
                 <div className="p-4 rounded-lg border bg-card">
-                  <h4 className="font-medium mb-2">📝 Brief Enrichi</h4>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                    Brief Enrichi
+                  </h4>
                   <p className="text-sm whitespace-pre-wrap">
                     {currentAnalysis.enriched_brief || currentAnalysis.idea_description || 'Brief non disponible'}
                   </p>
@@ -352,9 +482,15 @@ export default function Phase4TRIZ({
                 className="gap-2"
               >
                 {isAdvancing ? (
-                  <><span className="animate-spin">⏳</span> Transition...</>
+                  <>
+                    <Spinner size="sm" />
+                    Transition...
+                  </>
                 ) : (
-                  <>Passer à la Sélection Finale 🏆</>
+                  <>
+                    Passer à la Sélection Finale
+                    <Trophy className="w-4 h-4" />
+                  </>
                 )}
               </Button>
             </div>

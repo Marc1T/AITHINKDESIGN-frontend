@@ -87,4 +87,4 @@ Le frontend communique avec :
 
 ---
 
-**AIThinkDesign - PFE 2025**
+**AIThinkDesign - 2025**

@@ -1,89 +1,70 @@
-![Makerkit - Next.js Supabase SaaS Starter Kit \[Lite version\]](apps/web/public/images/makerkit.webp)
+![AIThinkDesign - Plateforme de Design Thinking et Prototypage IA](apps/web/public/images/favicon/logoAITHINKDESIGN.svg)
 
-# NEW! Next.js Supabase SaaS Starter Kit (Lite)
+# 🎨 AIThinkDesign - Design Thinking & Prototypage IA
 
-Start building your SaaS faster with our Next.js 15 + Supabase starter kit.
+Plateforme complète de conception produit assistée par intelligence artificielle, combinant Design Thinking, TRIZ et génération de prototypes 2D.
 
-👉 **Looking for a full-featured SaaS Starter Kit?** [Check out the complete version](https://makerkit.dev)
+> **Projet de Fin d'Études** - 4AS1 2025
 
-⭐️ **Why Developers Trust Makerkit:**
-- Production-grade architecture decisions
-- Comprehensive TypeScript setup
-- Modern stack: Next.js 15, Supabase, TailwindCSS v4
-- Quality Code tooling: ESLint v9, Prettier, strict TypeScript, etc.
-- Regular updates and active maintenance
+## ✨ Fonctionnalités Principales
 
-PS: the documentation for this kit is still being updated, so please check back later for more details.
+### 🧠 Design Thinking Assisté par IA
+- **Workshops structurés** - Empathie → Idéation → Sélection → Convergence
+- **Agents IA multi-personnalités** - Designer, Ingénieur, Utilisateur, Innovateur
+- **Streaming temps réel** - Génération d'idées en live via SSE
 
-## What's Included
+### 🔄 Analyse TRIZ
+- **Identification de contradictions** - Paramètres techniques conflictuels
+- **Principes inventifs** - 40 principes TRIZ adaptés
+- **Matrice de contradictions** - Résolution guidée
 
-### Core Architecture
-- 🏗️ Next.js 15 + Turborepo monorepo setup
-- 🎨 Shadcn UI components with TailwindCSS v4
-- 🔐 Supabase authentication & basic DB
-- 🌐 i18n translations (client + server)
-- ✨ Full TypeScript + ESLint v9 + Prettier configuration
+### 🎨 Prototypage IA
+- **Génération 2D** - Visuels réalistes ou techniques (FLUX Schnell)
+- **Studio autonome** - Création sans workshop préalable
+- **Édition IA** - Modification par instructions en langage naturel (Qwen)
+- **Nomenclature BOM** - Génération automatique des composants (Gemini)
+- **Assistant IA** - Chat contextuel sur les prototypes
 
-### Key Features
-- 👤 User authentication flow
-- ⚙️ User profile & settings
-- 📱 Responsive marketing pages
-- 🔒 Protected routes
-- 🎯 Basic test setup with Playwright
+## 🏗️ Architecture
 
-### Technologies
+### Stack Technique
 
-This starter kit provides core foundations:
+| Composant | Technologie | Description |
+|-----------|-------------|-------------|
+| **Frontend** | Next.js 15 | React framework avec App Router |
+| **UI** | Shadcn/ui + Tailwind v4 | Composants modernes |
+| **Auth & DB** | Supabase | Authentification et base de données |
+| **Backend API** | FastAPI (Python) | Workshops et services LLM |
+| **LLM** | Google Gemini | Génération de texte et analyse |
+| **Images** | Replicate (FLUX) | Génération de prototypes 2D |
+| **Édition** | Qwen | Modification d'images par instruction |
+| **Monorepo** | Turborepo | Gestion multi-packages |
 
-🛠️ **Technology Stack**:
-- [Next.js 15](https://nextjs.org/): A React-based framework for server-side rendering and static site generation.
-- [Tailwind CSS](https://tailwindcss.com/): A utility-first CSS framework for rapidly building custom designs.
-- [Supabase](https://supabase.com/): A realtime database for web and mobile applications.
-- [i18next](https://www.i18next.com/): A popular internationalization framework for JavaScript.
-- [Turborepo](https://turborepo.org/): A monorepo tool for managing multiple packages and applications.
-- [Shadcn UI](https://shadcn.com/): A collection of components built using Tailwind CSS.
-- [Zod](https://github.com/colinhacks/zod): A TypeScript-first schema validation library.
-- [React Query](https://tanstack.com/query/v4): A powerful data fetching and caching library for React.
-- [Prettier](https://prettier.io/): An opinionated code formatter for JavaScript, TypeScript, and CSS.
-- [Eslint](https://eslint.org/): A powerful linting tool for JavaScript and TypeScript.
-- [Playwright](https://playwright.dev/): A framework for end-to-end testing of web applications.
+### Structure du Projet
 
-This kit is a trimmed down version of the [full version of this SaaS Starter Kit](https://makerkit.dev). It is a good way to evaluate small part of the full kit, or to simply use it as a base for your own project.
+```
+projet_rouge/
+├── next-supabase-saas-kit-lite/     # Frontend Next.js
+│   ├── apps/web/                     # Application principale
+│   │   ├── app/home/designer/        # Module Designer
+│   │   ├── lib/replicate/            # Client API IA
+│   │   └── api/prototyping/          # APIs prototypage
+│   └── packages/                     # Composants partagés
+│
+└── generative-designer/              # Backend FastAPI
+    ├── modules/generative_designer/  # Code source
+    │   ├── api/                      # Endpoints REST
+    │   ├── core/                     # Services métier
+    │   └── models/                   # Schémas Pydantic
+    └── migrations/                   # Scripts SQL
+```
 
-## Comparing Lite vs Full Version
-
-The lite kit is perfect for:
-- Evaluating our code architecture and patterns
-- Building basic SaaS prototypes
-- Learning our tech stack approach
-- Building a basic SaaS tool
-
-The [full version](https://makerkit.dev) adds production features:
-- 💳 Complete billing and subscription system
-- 👥 Team accounts and management
-- 📧 Mailers and Email Templates (Nodemailer, Resend, etc.)
-- 📊 Analytics (GA, Posthog, Umami, etc.)
-- 🔦 Monitoring providers (Sentry, Baselime, etc.)
-- 🔐 Production database schema
-- ✅ Comprehensive test suite
-- 🔔 Realtime Notifications
-- 📝 Blogging system
-- 💡 Documentation system
-- ‍💻 Super Admin panel
-- 🕒 Daily updates and improvements
-- 🐛 Priority bug fixes
-- 🤝 Support
-- ⭐️ Used by 1000+ developers
-- 💪 Active community members
-- 🏢 Powers startups to enterprises
-
-[View complete feature comparison →](https://makerkit.dev/#pricing)
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js 18.x or later (preferably the latest LTS version)
+- Python 3.11+
 - Docker
 - PNPM
 
@@ -94,7 +75,7 @@ Please make sure you have a Docker daemon running on your machine. This is requi
 #### 1. Clone this repository
 
 ```bash
-git clone https://github.com/makerkit/next-supabase-saas-kit-lite.git
+git clone https://github.com/Marc1T/AITHINKDESIGN-frontend.git
 ```
 
 #### 2. Install dependencies
@@ -184,18 +165,25 @@ The project is organized into the following folders:
 
 ```
 apps/
-├── web/                  # Next.js application
-│   ├── app/             # App Router pages
-│   │   ├── (marketing)/ # Public marketing pages
-│   │   ├── auth/        # Authentication pages
-│   │   └── home/        # Protected app pages
-│   ├── supabase/        # Database & migrations
-│   └── config/          # App configuration
+├── web/                      # Next.js application
+│   ├── app/                  # App Router pages
+│   │   ├── (marketing)/      # Pages publiques
+│   │   ├── auth/             # Authentification
+│   │   └── home/
+│   │       └── designer/     # Module Designer AIThinkDesign
+│   │           ├── workshops/     # Gestion workshops
+│   │           ├── prototype/     # Hub prototypage
+│   │           │   └── studio/    # Studio autonome
+│   │           └── prototyping/   # Prototypage lié workshop
+│   ├── lib/replicate/        # Client API Replicate + Gemini
+│   ├── api/prototyping/      # APIs prototypage (generate, edit, bom)
+│   ├── supabase/             # Database & migrations
+│   └── config/               # App configuration
 │
 packages/
-├── ui/                  # Shared UI components
-└── features/           # Core feature packages
-    ├── auth/           # Authentication logic
+├── ui/                       # Shared UI components (Shadcn)
+└── features/                 # Core feature packages
+    ├── auth/                 # Authentication logic
     └── ...
 ```
 
@@ -209,14 +197,14 @@ Here are the available variables:
 
 | Variable Name | Description | Default Value |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | The URL of your SaaS application | `http://localhost:3000` |
-| `NEXT_PUBLIC_PRODUCT_NAME` | The name of your SaaS product | `Makerkit` |
-| `NEXT_PUBLIC_SITE_TITLE` | The title of your SaaS product | `Makerkit - The easiest way to build and manage your SaaS` |
-| `NEXT_PUBLIC_SITE_DESCRIPTION` | The description of your SaaS product | `Makerkit is the easiest way to build and manage your SaaS. It provides you with the tools you need to build your SaaS, without the hassle of building it from scratch.` |
-| `NEXT_PUBLIC_DEFAULT_THEME_MODE` | The default theme mode of your SaaS product | `light` |
-| `NEXT_PUBLIC_THEME_COLOR` | The default theme color of your SaaS product | `#ffffff` |
-| `NEXT_PUBLIC_THEME_COLOR_DARK` | The default theme color of your SaaS product in dark mode | `#0a0a0a` |
-| `NEXT_PUBLIC_SUPABASE_URL` | The URL of your Supabase project | `http://127.0.0.1:54321` |
+| `NEXT_PUBLIC_SITE_URL` | URL de l'application | `http://localhost:3000` |
+| `NEXT_PUBLIC_PRODUCT_NAME` | Nom du produit | `AIThinkDesign` |
+| `NEXT_PUBLIC_SITE_TITLE` | Titre du site | `AIThinkDesign - Design Thinking & Prototypage IA` |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL Supabase | `http://127.0.0.1:54321` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase | |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service role Supabase | |
+| `REPLICATE_API_TOKEN` | Token API Replicate | |
+| `NEXT_PUBLIC_BACKEND_URL` | URL backend FastAPI | `http://localhost:8000` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The anon key of your Supabase project | ''
 | `SUPABASE_SERVICE_ROLE_KEY` | The service role key of your Supabase project | ''
 
@@ -328,16 +316,53 @@ export const runtime = 'edge';
 
 Remember to enable Node.js compatibility in the Cloudflare dashboard.
 
-## Contributing
+## 📍 Routes de l'Application
 
-Contributions for bug fixed are welcome! However, please open an issue first to discuss your ideas before making a pull request.
+| Route | Description |
+|-------|-------------|
+| `/` | Page d'accueil marketing |
+| `/auth/sign-in` | Connexion |
+| `/auth/sign-up` | Inscription |
+| `/home` | Dashboard utilisateur |
+| `/home/designer` | Hub Designer AIThinkDesign |
+| `/home/designer/workshops` | Liste des workshops |
+| `/home/designer/workshops/new` | Créer un workshop |
+| `/home/designer/prototype` | Hub prototypage |
+| `/home/designer/prototype/studio` | Studio autonome |
+| `/home/designer/prototyping/[id]` | Prototypage workshop |
+| `/home/designer/prototyping/[id]/results` | Résultats prototypes |
+| `/home/designer/prototyping/[id]/assistant` | Chat IA |
+
+## 🔗 Connexion Backend
+
+Le frontend communique avec le backend FastAPI :
+
+```typescript
+// Exemple d'appel au backend workshops
+const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/workshops`, {
+  headers: {
+    'Authorization': `Bearer ${jwtToken}`,
+  },
+});
+```
+
+**Backend URL par défaut**: `http://localhost:8000`
+
+## 📚 Documentation
+
+- **Frontend API**: Voir `apps/web/api/` pour les routes API Next.js
+- **Backend API**: http://localhost:8000/docs (Swagger UI)
+- **Supabase Dashboard**: http://localhost:54323
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+Ce projet est développé dans le cadre d'un Projet de Fin d'Études.
 
-## Support
+## 📞 Contact
 
-No support is provided for this kit. Feel free to open an issue if you have any questions or need help, but there is no guaranteed response time, nor guarantee a fix.
+- **Email**: m.nankouli@edu.umi.ac.ma
+- **Projet**: AIThinkDesign - 4AS1 2025
 
-For dedicated support, priority fixes, and advanced features, [check out our full version](https://makerkit.dev).
+---
+
+**Built with ❤️ using Next.js, Supabase, FastAPI, Gemini AI & Replicate**

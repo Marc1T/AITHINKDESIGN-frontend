@@ -6,7 +6,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Lightbulb, Cpu, ArrowRight, Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import { Lightbulb, Cpu, ArrowRight } from 'lucide-react';
 import { Button } from '@kit/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@kit/ui/card';
 
@@ -18,9 +19,13 @@ export default function DesignerPage() {
       {/* Welcome Header */}
       <div className="text-center mb-12 max-w-2xl">
         <div className="flex justify-center mb-6">
-          <div className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-            <Sparkles className="w-12 h-12" />
-          </div>
+          <Image
+            src="/images/favicon/logoAITHINKDESIGN.svg"
+            alt="AITHINKDESIGN"
+            width={80}
+            height={80}
+            className="drop-shadow-lg"
+          />
         </div>
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           Bienvenue sur AITHINKDESIGN
@@ -67,7 +72,7 @@ export default function DesignerPage() {
         </Card>
 
         {/* Prototypage Card */}
-        <Card className="group hover:shadow-lg transition-all duration-300 hover:border-purple-500 cursor-pointer opacity-80"
+        <Card className="group hover:shadow-lg transition-all duration-300 hover:border-purple-500 cursor-pointer"
               onClick={() => router.push('/home/designer/prototype')}>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -77,8 +82,8 @@ export default function DesignerPage() {
               <div>
                 <CardTitle className="text-xl flex items-center gap-2">
                   Prototypage
-                  <span className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                    Bientôt
+                  <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                    Nouveau
                   </span>
                 </CardTitle>
                 <CardDescription>Génération visuelle IA</CardDescription>
@@ -87,18 +92,18 @@ export default function DesignerPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Transformez vos concepts en visuels concrets. Générez des rendus 2D et 3D 
+              Transformez vos concepts en visuels concrets. Générez des rendus 2D 
               de vos produits grâce à des modèles d'IA génératifs avancés.
             </p>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>✓ Génération d'images 2D</li>
-              <li>✓ Modélisation 3D automatique</li>
-              <li>✓ Variations et itérations</li>
-              <li>✓ Export multi-formats</li>
-              <li>✓ Intégration cahier des charges</li>
+              <li>✓ Génération d'images 2D réalistes ou techniques</li>
+              <li>✓ Édition d'images avec IA (Qwen)</li>
+              <li>✓ Génération de nomenclature (BOM)</li>
+              <li>✓ Assistant IA pour discuter des prototypes</li>
+              <li>✓ Export et téléchargement</li>
             </ul>
-            <Button variant="outline" className="w-full group-hover:border-purple-600 group-hover:text-purple-600 transition-colors">
-              Découvrir le prototypage <ArrowRight className="w-4 h-4 ml-2" />
+            <Button className="w-full group-hover:bg-purple-600 transition-colors">
+              Accéder au prototypage <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
         </Card>

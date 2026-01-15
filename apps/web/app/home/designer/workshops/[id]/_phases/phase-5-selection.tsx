@@ -226,6 +226,18 @@ export default function Phase5Selection({
       // Select the idea if not already done
       await phase5Api.selectFinal(workshopId, finalIdeaId, justification);
       
+      // Get the selected idea data
+      const selectedIdea = selectedIdeas.find(i => i.id === finalIdeaId);
+      
+      // Store idea data in sessionStorage for the prototyping page
+      if (selectedIdea) {
+        sessionStorage.setItem(`workshop_${workshopId}_idea_${finalIdeaId}`, JSON.stringify({
+          id: selectedIdea.id,
+          title: selectedIdea.title,
+          description: selectedIdea.description,
+        }));
+      }
+      
       // Navigate to prototyping page
       window.location.href = `/home/designer/prototyping/${workshopId}?idea=${finalIdeaId}`;
     } catch (err) {
